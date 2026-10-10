@@ -1,0 +1,50 @@
+[
+	{
+		"stepTitle": "初始化设置",
+		"items": [
+			{
+				"type": "tips",
+				"helpText": "安装完成后会创建面板管理员密码。请指定面板监听端口，若端口被占用会导致启动失败。数据保存在应用数据目录中，卸载时可选择保留。"
+			},
+			{
+				"type": "text",
+				"field": "wizard_port",
+				"label": "服务端口",
+				"initValue": "9788",
+				"rules": [
+					{ "required": true, "message": "请输入服务端口" },
+					{ "pattern": "^[0-9]+$", "message": "端口只能是数字" }
+				]
+			},
+			{
+				"type": "select",
+				"field": "wizard_scheme",
+				"label": "访问协议",
+				"initValue": "http",
+				"options": [
+					{ "label": "HTTP（默认）", "value": "http" },
+					{ "label": "HTTPS", "value": "https" }
+				]
+			},
+			{
+				"type": "password",
+				"field": "wizard_admin_password",
+				"label": "管理员密码",
+				"rules": [
+					{ "required": true, "message": "请设置管理员密码" },
+					{ "min": 8, "max": 128, "message": "密码长度需在 8 到 128 位之间" },
+					{ "pattern": "^(?=.*[A-Za-z])(?=.*[0-9]).+$", "message": "密码需同时包含字母和数字" }
+				]
+			},
+			{
+				"type": "password",
+				"field": "wizard_admin_password2",
+				"label": "确认密码",
+				"rules": [
+					{ "required": true, "message": "请再次输入密码" },
+					{ "min": 8, "max": 128, "message": "密码长度需在 8 到 128 位之间" }
+				]
+			}
+		]
+	}
+]

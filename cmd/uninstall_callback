@@ -1,0 +1,11 @@
+#!/bin/bash
+# 按卸载向导选择清理数据；默认保留
+if [ "${wizard_keep_data:-keep}" = "remove" ]; then
+	SHARE_DIR="${TRIM_DATA_SHARE_PATHS%%:*}"
+	rm -rf "$TRIM_PKGVAR/data"
+	[ -n "$SHARE_DIR" ] && rm -rf "$SHARE_DIR/data"
+	if [ -n "$SHARE_DIR" ]; then
+		rm -f "$SHARE_DIR/运行日志.log" "$SHARE_DIR"/运行日志.log.*
+	fi
+fi
+exit 0

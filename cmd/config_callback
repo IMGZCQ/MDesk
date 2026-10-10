@@ -1,0 +1,34 @@
+#!/bin/bash
+set -e
+
+scheme="${wizard_scheme:-http}"
+port="${wizard_port:-9788}"
+case "$scheme" in
+	http|https) ;;
+	*)
+		echo "访问协议无效: $scheme" >>"$TRIM_TEMP_LOGFILE"
+		exit 1
+		;;
+esac
+case "$port" in
+	""|*[!0-9]*)
+		echo "访问端口无效: $port" >>"$TRIM_TEMP_LOGFILE"
+		exit 1
+		;;
+esac
+
+# 设置向导修改协议或端口后，同步 CGI 跳转目标。
+if [ -n "$TRIM_APPDEST" ]; then
+	for CGI_FILE in "$TRIM_APPDEST/ui/index.cgi" "$TRIM_APPDEST/app/ui/index.cgi"; do
+		if [ -f "$CGI_FILE" ]; then
+			sed -i \
+				-e "s/^SCHEME=\"[^\"]*\"/SCHEME=\"$scheme\"/" \
+				-e "s/^PORT=\"[^\"]*\"/PORT=\"$port\"/" \
+				"$CGI_FILE" 2>/dev/null || true
+			chmod +x "$CGI_FILE" 2>/dev/null || true
+			break
+		fi
+	done
+fi
+
+exit 0

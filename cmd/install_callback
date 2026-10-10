@@ -1,0 +1,61 @@
+#!/bin/bash
+set -e
+
+# 与 cmd/main 保持一致，按当前机器架构选择二进制。
+case "$(uname -m 2>/dev/null)" in
+	x86_64|amd64) BIN="$TRIM_APPDEST/bin/MDesk-amd64" ;;
+	aarch64|arm64) BIN="$TRIM_APPDEST/bin/MDesk-arm64" ;;
+	*)
+		echo "不支持的 CPU 架构: $(uname -m 2>/dev/null)" >>"$TRIM_TEMP_LOGFILE"
+		exit 1
+		;;
+esac
+
+SHARE_DIR="${TRIM_DATA_SHARE_PATHS%%:*}"
+if [ -z "$SHARE_DIR" ]; then
+	echo "未能获取共享目录 TRIM_DATA_SHARE_PATHS" >>"$TRIM_TEMP_LOGFILE"
+	exit 1
+fi
+DATA_DIR="$SHARE_DIR/data"
+mkdir -p "$DATA_DIR"
+chown -R "$TRIM_USERNAME:$TRIM_GROUPNAME" "$TRIM_PKGVAR"
+
+scheme="${wizard_scheme:-http}"
+port="${wizard_port:-9788}"
+case "$scheme" in
+	http|https) ;;
+	*)
+		echo "访问协议无效: $scheme" >>"$TRIM_TEMP_LOGFILE"
+		exit 1
+		;;
+esac
+case "$port" in
+	""|*[!0-9]*)
+		echo "访问端口无效: $port" >>"$TRIM_TEMP_LOGFILE"
+		exit 1
+		;;
+esac
+
+# CGI 入口不使用 desktop entry 的 protocol/port，按向导选择同步跳转目标。
+if [ -n "$TRIM_APPDEST" ]; then
+	for CGI_FILE in "$TRIM_APPDEST/ui/index.cgi" "$TRIM_APPDEST/app/ui/index.cgi"; do
+		if [ -f "$CGI_FILE" ]; then
+			sed -i \
+				-e "s/^SCHEME=\"[^\"]*\"/SCHEME=\"$scheme\"/" \
+				-e "s/^PORT=\"[^\"]*\"/PORT=\"$port\"/" \
+				"$CGI_FILE" 2>/dev/null || true
+			chmod +x "$CGI_FILE" 2>/dev/null || true
+			break
+		fi
+	done
+fi
+
+# 每次安装都以向导设置的管理员密码为准，直接重置。
+# 注意：共享目录里的旧 pw.json 可能因卸载时保留数据而残留，
+# 不能因文件已存在而跳过，否则新密码不生效。
+if [ -n "${wizard_admin_password:-}" ]; then
+	"$BIN" -data "$DATA_DIR" -scheme "$scheme" -reset-password "$wizard_admin_password" >/dev/null
+	chmod 600 "$DATA_DIR/pw.json" 2>/dev/null || true
+fi
+
+exit 0

@@ -1,0 +1,17 @@
+[
+	{
+		"stepTitle": "卸载选项",
+		"items": [
+			{
+				"type": "radio",
+				"field": "wizard_keep_data",
+				"label": "应用数据（配置、密码、收藏、分享记录）",
+				"initValue": "keep",
+				"options": [
+					{ "label": "保留数据，重装后继续可用", "value": "keep" },
+					{ "label": "删除全部数据", "value": "remove" }
+				]
+			}
+		]
+	}
+]

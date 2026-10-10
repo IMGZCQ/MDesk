@@ -1,0 +1,106 @@
+#!/bin/bash
+
+# 根据当前机器架构选择随包分发的二进制。
+set_bin() {
+	ARCH="$(uname -m 2>/dev/null)"
+	case "$ARCH" in
+		x86_64|amd64) BIN="$TRIM_APPDEST/bin/MDesk-amd64" ;;
+		aarch64|arm64) BIN="$TRIM_APPDEST/bin/MDesk-arm64" ;;
+		*)
+			echo "不支持的 CPU 架构: $ARCH" >>"$TRIM_TEMP_LOGFILE"
+			exit 1
+			;;
+	esac
+}
+set_bin
+# 共享目录以系统变量 TRIM_DATA_SHARE_PATHS 为准（多个以 : 分隔，本应用只声明一个）
+SHARE_DIR="${TRIM_DATA_SHARE_PATHS%%:*}"
+if [ -z "$SHARE_DIR" ]; then
+	echo "未能获取共享目录 TRIM_DATA_SHARE_PATHS" >>"$TRIM_TEMP_LOGFILE"
+	exit 1
+fi
+mkdir -p "$SHARE_DIR"
+DATA_DIR="$SHARE_DIR/data"
+PID_FILE="$TRIM_PKGVAR/app.pid"
+LOG_FILE="$SHARE_DIR/运行日志.log"
+PORT="${wizard_port:-${TRIM_SERVICE_PORT:-9788}}"
+SCHEME="${wizard_scheme:-http}"
+
+sync_cgi() {
+	[ -n "$TRIM_APPDEST" ] || return 0
+	for CGI_FILE in "$TRIM_APPDEST/ui/index.cgi" "$TRIM_APPDEST/app/ui/index.cgi"; do
+		if [ -f "$CGI_FILE" ]; then
+			sed -i \
+				-e "s/^SCHEME=\"[^\"]*\"/SCHEME=\"$SCHEME\"/" \
+				-e "s/^PORT=\"[^\"]*\"/PORT=\"$PORT\"/" \
+				"$CGI_FILE" 2>/dev/null || true
+			chmod +x "$CGI_FILE" 2>/dev/null || true
+			return 0
+		fi
+	done
+}
+
+# 兼容旧版本数据目录：迁移自 TRIM_PKGVAR/data
+if [ -d "$TRIM_PKGVAR/data" ] && [ ! -d "$DATA_DIR" ]; then
+	mkdir -p "$SHARE_DIR"
+	mv "$TRIM_PKGVAR/data" "$DATA_DIR"
+fi
+
+# 清理旧版本日志路径
+rm -f "$TRIM_PKGVAR/app.log" 2>/dev/null || true
+
+start() {
+	case "$SCHEME" in
+		http|https) ;;
+		*)
+			echo "访问协议无效: $SCHEME" >>"$TRIM_TEMP_LOGFILE"
+			exit 1
+			;;
+	esac
+	mkdir -p "$DATA_DIR" "$SHARE_DIR"
+	chown -R "$TRIM_USERNAME:$TRIM_GROUPNAME" "$TRIM_PKGVAR" "$SHARE_DIR" 2>/dev/null || true
+	sync_cgi
+	# 以 root 运行服务：文件管理需访问 /vol1 等系统目录，
+	# 降权为专属用户会因权限不足无法读取存储池。
+	# 运行日志由程序自身按 5MB 轮转（保留 3 份历史），这里不再重定向追加。
+	env \
+		TRIM_SERVICE_PORT="$PORT" \
+		HOME="$TRIM_PKGHOME" \
+		"$BIN" -port "$PORT" -scheme "$SCHEME" -data "$DATA_DIR" -log "$LOG_FILE" >/dev/null 2>&1 &
+	echo $! >"$PID_FILE"
+	sleep 1
+	if ! kill -0 "$(cat "$PID_FILE")" 2>/dev/null; then
+		echo "M·Desk 启动失败，请检查端口 $PORT 是否被占用，日志见 $LOG_FILE" >>"$TRIM_TEMP_LOGFILE"
+		exit 1
+	fi
+	exit 0
+}
+
+stop() {
+	if [ -f "$PID_FILE" ]; then
+		kill "$(cat "$PID_FILE")" 2>/dev/null || true
+		rm -f "$PID_FILE"
+	fi
+	pkill -f "$BIN -port" 2>/dev/null || true
+	exit 0
+}
+
+status() {
+	if [ -f "$PID_FILE" ] && kill -0 "$(cat "$PID_FILE")" 2>/dev/null; then
+		exit 0
+	fi
+	if pgrep -f "$BIN -port" >/dev/null 2>&1; then
+		exit 0
+	fi
+	exit 3
+}
+
+case "$1" in
+	start) start ;;
+	stop) stop ;;
+	status) status ;;
+	*)
+		echo "未知操作: $1" >>"$TRIM_TEMP_LOGFILE"
+		exit 1
+		;;
+esac

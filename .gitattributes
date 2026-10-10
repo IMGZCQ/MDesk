@@ -1,0 +1,14 @@
+* text=auto
+
+*.md text eol=lf
+manifest text eol=lf
+app/ui/config text eol=lf
+app/ui/index.cgi text eol=lf
+cmd/* text eol=lf
+config/* text eol=lf
+wizard/* text eol=lf
+
+*.png binary
+*.PNG binary
+*.webp binary
+app/bin/* binary

@@ -1,0 +1,25 @@
+#!/bin/bash
+set -e
+
+# 校验安装向导中的管理员密码
+pw="${wizard_admin_password:-}"
+pw2="${wizard_admin_password2:-}"
+scheme="${wizard_scheme:-http}"
+
+fail() {
+	echo "$1" >>"$TRIM_TEMP_LOGFILE"
+	exit 1
+}
+
+[ -z "$pw" ] && fail "管理员密码不能为空。"
+[ "$pw" != "$pw2" ] && fail "两次输入的密码不一致。"
+[ "${#pw}" -lt 8 ] && fail "密码长度至少 8 位。"
+[ "${#pw}" -gt 128 ] && fail "密码长度不能超过 128 位。"
+echo "$pw" | grep -q '[A-Za-z]' || fail "密码需包含字母。"
+echo "$pw" | grep -q '[0-9]' || fail "密码需包含数字。"
+case "$scheme" in
+	http|https) ;;
+	*) fail "访问协议无效，只支持 http 或 https。" ;;
+esac
+
+exit 0

@@ -1,0 +1,14 @@
+{
+	".url": {
+		"mdesk.main": {
+			"title": "M·Desk",
+			"icon": "images/icon_{0}.png",
+			"type": "url",
+			"url": "/cgi/ThirdParty/mdesk/index.cgi/",
+			"allUsers": false,
+			"control": {
+				"accessPerm": "readonly"
+			}
+		}
+	}
+}
