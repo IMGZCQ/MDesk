@@ -43,8 +43,8 @@
 | **外链分享** | 为文件或目录生成分享链接，可设置访问密码、到期时间、启停状态。 |
 | **静态网站** | 选择一个本地目录即可发布为静态网站，支持默认主页、目录浏览与域名绑定。 |
 | **组网隧道** | 支持 FRPC、EasyTier 与 Cloudflare Tunnel；Cloudflare 支持命名隧道和快捷隧道。 |
-| **Docker 管理** | 在同一桌面中查看容器、镜像与运行状态，减少在多套工具之间切换。 |
-| **系统状态** | 集中展示系统信息、硬盘、网络与资源监控数据，让运行情况保持清晰可见。 |
+| **Docker 管理** | 管理容器、Compose 项目、本地镜像、镜像仓库、Docker 网络与镜像加速器，并支持重启 Docker 服务。 |
+| **系统状态** | 集中展示系统与硬件信息、硬盘和 SMART 健康、网络接口与流量、CPU、内存、GPU 与资源趋势。 |
 
 ---
 
@@ -64,7 +64,35 @@ chmod +x ./MDesk-linux-amd64
 4. 默认监听 HTTP `9788` 端口，访问 `http://<设备地址>:9788/@admin`。
 5. 首次访问时设置管理密码。
 
-ARM64 设备请将文件名替换为 `MDesk-linux-arm64`。可通过 `-scheme`、`-port`、`-data` 和 `-log` 调整访问协议、监听端口、数据目录和日志文件，完整参数见 [MDesk 使用手册](./MDesk%20使用手册.md)。
+ARM64 设备请将文件名替换为 `MDesk-linux-arm64`。可通过启动参数调整访问协议、监听地址、数据目录、日志和组网配置，完整说明见 [MDesk 使用手册](./MDesk%20使用手册.md)。
+
+### 常用启动参数
+
+| 参数 | 说明 |
+| --- | --- |
+| `-scheme` | 设置 HTTP 或 HTTPS，默认 `http` |
+| `-addr` | 设置完整监听地址，例如 `127.0.0.1:8080` 或 `:8080`；与 `-port` 二选一，`-addr` 优先 |
+| `-port` | 设置监听端口，默认 `9788` |
+| `-data` | 设置数据目录，默认使用程序所在目录下的 `data` |
+| `-log` | 设置运行日志文件；按 5MB 轮转并保留 3 份 |
+| `-reset-password` | 重置管理密码后退出程序 |
+| `-frpc-config` | 首次导入 FRPC 配置文件，支持本地路径或 HTTP(S) URL |
+| `-easytier-config` | 首次导入 EasyTier 配置文件，支持本地路径或 HTTP(S) URL |
+| `-cf-token` | 首次导入 Cloudflare 命名隧道 Token |
+| `-force` | 强制使用命令行中的组网隧道配置覆盖已有模块配置 |
+
+Docker 管理建议在 Docker 所在 Linux 宿主机上运行，并确保 M·Desk 进程拥有 Docker Socket 的读写权限。
+
+### 可选环境变量
+
+| 环境变量 | 说明 |
+| --- | --- |
+| `MDESK_GITHUB_PROXY` | 组网工具下载代理，多个地址使用英文逗号分隔；设置后会替换内置代理列表，并支持 `{url}` 占位符 |
+| `MDESK_GITHUB_TOKEN` | 可选的 GitHub Token，优先于 `GITHUB_TOKEN`，用于提高 GitHub API 和下载请求限额 |
+| `GITHUB_TOKEN` | `MDESK_GITHUB_TOKEN` 未设置时使用 |
+| `DOCKER_SOCKET` | 自定义 Docker Unix Socket 路径 |
+| `DOCKER_HOST` | 仅支持 `unix://...` 形式，暂不支持 TCP 连接 |
+| `DOCKER_DAEMON_CONFIG` | 自定义 Docker daemon 配置文件路径，默认 `/etc/docker/daemon.json` |
 
 ### fnOS 安装包
 
