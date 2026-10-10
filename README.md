@@ -17,7 +17,7 @@
 > [!NOTE]
 > M·Desk 将服务路由、终端、文件、分享、静态网站、组网隧道、Docker 与系统状态收束到同一套桌面体验中，面向 NAS、家庭实验室、小型团队和重视数据自主的个人用户。
 
-<p align="center"><strong>当前版本：2.3.27</strong></p>
+<p align="center"><strong>当前版本：2.3.28</strong></p>
 
 <p align="center">
   <img src="./poster.webp" alt="M·Desk 功能概览" width="100%">
