@@ -250,6 +250,34 @@ http://<设备地址>:19188/@admin
 
 fnOS 用户可以在应用中心安装 `mdesk_<版本>.fpk`，安装过程中可选择 HTTP 或 HTTPS，并调整监听端口。
 
+#### Docker Compose 部署
+
+创建 `compose.yaml`：
+
+```yaml
+services:
+  MDesk:
+    container_name: MDesk         # 容器名称
+    image: imgzcq/mdesk            # Docker 镜像名称
+    ports: [19188:19188]           # 访问端口:内部端口
+    volumes: [./data:/data]        # 用户图标持久化目录
+    restart: always                # 开机自启
+```
+
+在 `compose.yaml` 所在目录执行：
+
+```bash
+docker compose up -d
+```
+
+如果需要使用 M·Desk 的 Docker 管理功能，请额外挂载 Docker Socket：
+
+```yaml
+    volumes:
+      - ./data:/data
+      - /var/run/docker.sock:/var/run/docker.sock
+```
+
 ### 3.2 首次使用
 
 1. 打开管理入口。

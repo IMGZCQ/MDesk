@@ -106,6 +106,36 @@ Docker 管理建议在 Docker 所在 Linux 宿主机上运行，并确保 M·Des
 
 GitHub Actions 会在发布 Release 时自动读取该 Release 的 `MDesk-linux-amd64` 与 `MDesk-linux-arm64` 资产，构建并推送 `linux/amd64` 与 `linux/arm64` 多架构镜像到 Docker Hub：
 
+#### Docker Compose
+
+创建 `compose.yaml`：
+
+```yaml
+services:
+  MDesk:
+    container_name: MDesk         # 容器名称
+    image: imgzcq/mdesk            # Docker 镜像名称
+    ports: [19188:19188]           # 访问端口:内部端口
+    volumes: [./data:/data]        # 用户图标持久化目录
+    restart: always                # 开机自启
+```
+
+启动：
+
+```bash
+docker compose up -d
+```
+
+如果需要使用 M·Desk 的 Docker 管理功能，请额外挂载 Docker Socket：
+
+```yaml
+    volumes:
+      - ./data:/data
+      - /var/run/docker.sock:/var/run/docker.sock
+```
+
+#### Docker Run
+
 ```bash
 docker pull imgzcq/mdesk:latest
 
