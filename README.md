@@ -4,7 +4,7 @@
 
 <h1 align="center">M·Desk</h1>
 
-<p align="center">面向自托管场景的桌面系统</p>
+<p align="center">高效轻便的服务器运维桌面系统</p>
 
 <p align="center">
   <a href="https://github.com/IMGZCQ/MDesk/releases">下载</a>
@@ -144,7 +144,7 @@ docker run -d \
 
 Docker 管理需要挂载 Docker Socket。文件管理与终端默认只看到容器内文件，如需管理宿主机目录，请额外挂载对应卷。
 
-仓库 Actions secrets 需要配置 `DOCKERHUB_TOKEN`，建议使用 Docker Hub 的 Read & Write access token。Release 发布会推送 `latest`、版本号和完整标签；也可以通过 `workflow_dispatch` 手动补发指定版本，版本号填写 `2.7.58` 或 `v2.7.58` 均可。
+仓库 Actions secrets 需要配置 `DOCKERHUB_TOKEN`，建议使用 Docker Hub 的 Read & Write access token。Release 发布会推送 `latest`、版本号和完整标签；也可以通过 `workflow_dispatch` 手动补发指定版本，版本号填写 `2.7.59` 或 `v2.7.59` 均可。
 
 ### fnOS 安装包
 
@@ -179,6 +179,13 @@ MDesk 使用手册.md      用户使用、部署与参数说明
 > M·Desk 的管理入口、终端与文件管理拥有较高权限。请使用强密码，优先通过 HTTPS、内网 ACL、VPN 或零信任网关访问，不要将管理入口直接暴露在不可信网络中。
 
 ## 更新日志
+
+### 2.7.59
+
+- 统一产品定位为“高效轻便的服务器运维桌面系统”，同步网站、README、使用手册与 fnOS 清单。
+- 更新官网首页 Dashboard 展示图，完善桌面系统的视觉呈现。
+- 校准 Cloudflare 隧道说明：命名隧道用于固定入口，快捷隧道由 Cloudflare 分配临时 `*.trycloudflare.com` 公开地址，适合快速验证。
+- 重新构建 Windows、Linux amd64、Linux arm64 与 fnOS 安装包。
 
 ### 2.7.58
 
