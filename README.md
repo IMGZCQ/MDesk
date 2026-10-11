@@ -17,7 +17,7 @@
 > [!NOTE]
 > M·Desk 将服务路由、终端、文件、分享、静态网站、组网隧道、Docker 与系统状态收束到同一套桌面体验中，面向 NAS、家庭实验室、小型团队和重视数据自主的个人用户。
 
-<p align="center"><strong>当前版本：2.6.53</strong></p>
+<p align="center"><strong>当前版本：2.6.55</strong></p>
 
 <p align="center">
   <img src="https://raw.githubusercontent.com/IMGZCQ/MDesk/main/poster.webp" alt="M·Desk 功能概览" width="100%">
@@ -53,6 +53,7 @@ M·Desk 以桌面作为统一工作空间：侧栏组织服务路由、终端、
 | **组网隧道** | 支持 FRPC、EasyTier 与 Cloudflare Tunnel，并可分别管理多个实例；Cloudflare 提供命名隧道与快捷隧道两种模式。 |
 | **Docker 管理** | 管理容器、Compose 项目、本地镜像、镜像仓库、Docker 网络与镜像加速器，并支持重启 Docker 服务。 |
 | **系统状态** | 集中展示系统与硬件信息、硬盘和 SMART 健康、网络接口与流量、CPU、内存、GPU 与资源趋势。 |
+| **软件更新检测** | 从 GitHub Releases 检查最新版本，支持自动检测与手动重检，只提示发布信息，不自动下载或替换文件。 |
 
 ---
 
@@ -113,11 +114,13 @@ GitHub Actions 会在发布 Release 时自动读取该 Release 的 `MDesk-linux-
 ```yaml
 services:
   MDesk:
-    container_name: MDesk         # 容器名称
-    image: imgzcq/mdesk            # Docker 镜像名称
-    ports: [19188:19188]           # 访问端口:内部端口
-    volumes: [./data:/data]        # 用户图标持久化目录
-    restart: always                # 开机自启
+    container_name: MDesk                            # 容器名称
+    image: imgzcq/mdesk                              # Docker 镜像名称
+    ports: [19188:19188]                             # 访问端口:内部端口
+    volumes:
+      - ./data:/data                                 # 用户图标持久化目录
+      - /var/run/docker.sock:/var/run/docker.sock    # Docker 管理
+    restart: always                                  # 开机自启
 ```
 
 启动：
@@ -126,13 +129,10 @@ services:
 docker compose up -d
 ```
 
-如果需要使用 M·Desk 的 Docker 管理功能，请额外挂载 Docker Socket：
+`/var/run/docker.sock` 用于 M·Desk 的 Docker 管理功能。不需要该功能时可以移除这一行，但容器、Compose、镜像与网络页面将无法连接宿主机 Docker。
 
-```yaml
-    volumes:
-      - ./data:/data
-      - /var/run/docker.sock:/var/run/docker.sock
-```
+> [!CAUTION]
+> 挂载 Docker Socket 后，M·Desk 将拥有较高的宿主机控制权限。请只运行可信镜像，限制管理入口的访问范围，并妥善保护管理密码与访问链路。
 
 #### Docker Run
 
@@ -150,7 +150,7 @@ docker run -d \
 
 Docker 管理需要挂载 Docker Socket。文件管理与终端默认只看到容器内文件，如需管理宿主机目录，请额外挂载对应卷。
 
-仓库 Actions secrets 需要配置 `DOCKERHUB_TOKEN`，建议使用 Docker Hub 的 Read & Write access token。Release 发布会推送 `latest`、版本号和完整标签；也可以通过 `workflow_dispatch` 手动补发指定版本，版本号填写 `2.6.53` 或 `v2.6.53` 均可。
+仓库 Actions secrets 需要配置 `DOCKERHUB_TOKEN`，建议使用 Docker Hub 的 Read & Write access token。Release 发布会推送 `latest`、版本号和完整标签；也可以通过 `workflow_dispatch` 手动补发指定版本，版本号填写 `2.6.55` 或 `v2.6.55` 均可。
 
 ### fnOS 安装包
 
@@ -164,6 +164,12 @@ Docker 管理需要挂载 Docker Socket。文件管理与终端默认只看到�
 ---
 
 ## 版本记录
+
+### 2.6.55
+
+- 新增 GitHub Releases 更新检测，打开系统状态时自动检查，并支持手动重新检测；检测结果只展示版本与发布入口，不会自动下载、安装或替换文件。
+- Docker Compose 部署补充 `/var/run/docker.sock:/var/run/docker.sock` 挂载说明，并增加宿主机权限与访问控制安全提示。
+- 同步网站、README、使用手册、fnOS 清单与发布信息到 `2.6.55`。
 
 ### 2.6.53
 

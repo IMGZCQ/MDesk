@@ -1,6 +1,6 @@
 # M·Desk 使用手册
 
-> **当前版本：** `2.6.53`
+> **当前版本：** `2.6.55`
 >
 > M·Desk 是面向 NAS、家庭实验室与小型团队的自托管桌面系统。它把服务路由、终端、文件、分享、静态网站、组网隧道、Docker 与系统状态组织在同一套界面和操作习惯中。
 
@@ -43,6 +43,7 @@ M·Desk 是一套自托管桌面系统，把常用的服务入口、运维操作
 | **组网隧道** | 支持 FRPC、EasyTier 与 Cloudflare Tunnel，并可分别管理多个实例；Cloudflare 提供命名隧道与快捷隧道两种模式。 |
 | **Docker 管理** | 管理容器、Compose 项目、本地镜像、镜像仓库、Docker 网络与镜像加速器，并支持重启 Docker 服务。 |
 | **系统状态** | 查看系统与硬件信息、硬盘和 SMART 健康、网络接口与流量、CPU、内存、GPU 和资源趋势。 |
+| **软件更新检测** | 从 GitHub Releases 检查最新版本，支持自动检测与手动重检，只展示发布信息，不自动下载或替换文件。 |
 
 ### 1.3 桌面组成
 
@@ -202,6 +203,14 @@ Docker 管理用于在桌面中查看和维护宿主机 Docker 环境。模块�
 - **系统与硬件**：查看 CPU、内存、GPU、主板、BIOS / 固件与系统温度。
 - **软件与版本**：查看系统名称、内核、构建版本、软件更新状态、启动时间和运行时长。
 
+#### 软件更新
+
+- 打开系统状态时会自动查询 GitHub Releases 的最新版本。
+- 可以手动点击“检测更新”或“重新检测”，比较当前版本与最新版本。
+- 发现新版本后，可从系统状态直接前往 GitHub Releases 查看发布信息。
+- M·Desk 不会自动下载、安装或替换程序文件，是否升级仍由你决定。
+- 更新检测需要设备能够访问 `https://api.github.com`；网络不可达时只显示检测失败，不影响其它模块使用。
+
 #### 硬盘信息
 
 - **硬盘总览**：查看物理硬盘、文件系统、容量、使用率、温度、健康状态和实时读写速度。
@@ -257,11 +266,13 @@ fnOS 用户可以在应用中心安装 `mdesk_<版本>.fpk`，安装过程中可
 ```yaml
 services:
   MDesk:
-    container_name: MDesk         # 容器名称
-    image: imgzcq/mdesk            # Docker 镜像名称
-    ports: [19188:19188]           # 访问端口:内部端口
-    volumes: [./data:/data]        # 用户图标持久化目录
-    restart: always                # 开机自启
+    container_name: MDesk                            # 容器名称
+    image: imgzcq/mdesk                              # Docker 镜像名称
+    ports: [19188:19188]                             # 访问端口:内部端口
+    volumes:
+      - ./data:/data                                 # 用户图标持久化目录
+      - /var/run/docker.sock:/var/run/docker.sock    # Docker 管理
+    restart: always                                  # 开机自启
 ```
 
 在 `compose.yaml` 所在目录执行：
@@ -270,13 +281,10 @@ services:
 docker compose up -d
 ```
 
-如果需要使用 M·Desk 的 Docker 管理功能，请额外挂载 Docker Socket：
+`/var/run/docker.sock` 用于 M·Desk 的 Docker 管理功能。不需要该功能时可以移除这一行，但容器、Compose、镜像与网络页面将无法连接宿主机 Docker。
 
-```yaml
-    volumes:
-      - ./data:/data
-      - /var/run/docker.sock:/var/run/docker.sock
-```
+> [!CAUTION]
+> 挂载 Docker Socket 后，M·Desk 将拥有较高的宿主机控制权限。请只运行可信镜像，限制管理入口的访问范围，并妥善保护管理密码与访问链路。
 
 ### 3.2 首次使用
 
@@ -387,6 +395,12 @@ docker compose up -d
 
 ---
 ## 4. 更新日志
+
+### 2.6.55
+
+- 新增 GitHub Releases 更新检测，打开系统状态时自动检查，并支持手动重新检测；检测结果只展示版本与发布入口，不会自动下载、安装或替换文件。
+- Docker Compose 部署补充 `/var/run/docker.sock:/var/run/docker.sock` 挂载说明，并增加宿主机权限与访问控制安全提示。
+- 同步网站、README、使用手册、fnOS 清单与发布信息到 `2.6.55`。
 
 ### 2.6.53
 
