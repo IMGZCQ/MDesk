@@ -10,7 +10,7 @@
 				"type": "text",
 				"field": "wizard_port",
 				"label": "服务端口",
-				"initValue": "9788",
+				"initValue": "19188",
 				"rules": [
 					{ "required": true, "message": "请输入服务端口" },
 					{ "pattern": "^[0-9]+$", "message": "端口只能是数字" }

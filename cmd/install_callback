@@ -21,7 +21,7 @@ mkdir -p "$DATA_DIR"
 chown -R "$TRIM_USERNAME:$TRIM_GROUPNAME" "$TRIM_PKGVAR"
 
 scheme="${wizard_scheme:-http}"
-port="${wizard_port:-9788}"
+port="${wizard_port:-19188}"
 case "$scheme" in
 	http|https) ;;
 	*)

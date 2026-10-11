@@ -4,7 +4,7 @@ set -eu
 
 # Updated by fnOS lifecycle scripts to match the service listener.
 SCHEME="http"
-PORT="9788"
+PORT="19188"
 
 printf 'Content-Type: text/html; charset=utf-8\r\n'
 printf 'Cache-Control: no-store\r\n'

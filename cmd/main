@@ -23,7 +23,7 @@ mkdir -p "$SHARE_DIR"
 DATA_DIR="$SHARE_DIR/data"
 PID_FILE="$TRIM_PKGVAR/app.pid"
 LOG_FILE="$SHARE_DIR/运行日志.log"
-PORT="${wizard_port:-${TRIM_SERVICE_PORT:-9788}}"
+PORT="${wizard_port:-${TRIM_SERVICE_PORT:-19188}}"
 SCHEME="${wizard_scheme:-http}"
 
 sync_cgi() {

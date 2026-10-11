@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="./mdesk/ICON.PNG" width="120" alt="M·Desk">
+  <img src="./ICON.PNG" width="120" alt="M·Desk">
 </p>
 
 <h1 align="center">M·Desk</h1>
@@ -17,16 +17,16 @@
 > [!NOTE]
 > M·Desk 将服务路由、终端、文件、分享、静态网站、组网隧道、Docker 与系统状态收束到同一套桌面体验中，面向 NAS、家庭实验室、小型团队和重视数据自主的个人用户。
 
-<p align="center"><strong>当前版本：2.5.38</strong></p>
+<p align="center"><strong>当前版本：2.6.42</strong></p>
 
 <p align="center">
-  <img src="./www/assets/poster.webp" alt="M·Desk 功能概览" width="100%">
+  <img src="./poster.webp" alt="M·Desk 功能概览" width="100%">
 </p>
 
 ## 桌面系统总览
 
 <p align="center">
-  <img src="./www/assets/desktop-overview.webp" alt="M·Desk 桌面系统总览" width="52%">
+  <img src="./desktop-overview.webp" alt="M·Desk 桌面系统总览" width="52%">
 </p>
 
 M·Desk 以桌面作为统一工作空间：侧栏组织服务路由、终端、文件、分享、静态网站、组网隧道、Docker 管理与系统状态；应用区集中呈现常用入口；任务栏承接窗口切换。模块之间共享一致的菜单、状态与反馈，让日常运维和内容流转保持连贯。
@@ -50,8 +50,8 @@ M·Desk 以桌面作为统一工作空间：侧栏组织服务路由、终端、
 | **文件管理** | 在线浏览、编辑、上传下载、压缩解压；支持右键菜单、框选和直接分享。 |
 | **外链分享** | 为文件或目录生成分享链接，可设置访问密码、到期时间、启停状态。 |
 | **静态网站** | 选择一个本地目录即可发布为静态网站，支持默认主页、目录浏览与域名绑定。 |
-| **组网隧道** | 支持 FRPC、EasyTier 与 Cloudflare Tunnel；Cloudflare 支持命名隧道和快捷隧道。 |
-| **Docker管理** | 管理容器、Compose 项目、本地镜像、镜像仓库、Docker 网络与镜像加速器，并支持重启 Docker 服务。 |
+| **组网隧道** | 支持 FRPC、EasyTier 与 Cloudflare Tunnel；Cloudflare 提供命名隧道、快捷隧道、临时快捷隧道与匿名隧道等模式。 |
+| **Docker 管理** | 管理容器、Compose 项目、本地镜像、镜像仓库、Docker 网络与镜像加速器，并支持重启 Docker 服务。 |
 | **系统状态** | 集中展示系统与硬件信息、硬盘和 SMART 健康、网络接口与流量、CPU、内存、GPU 与资源趋势。 |
 
 ---
@@ -113,13 +113,31 @@ Docker 管理建议在 Docker 所在 Linux 宿主机上运行，并确保 M·Des
 
 ---
 
-## 项目结构
+## 版本记录
+
+### 2.6.42
+
+- 桌面系统完成侧栏、应用区、任务栏与多窗口体验整合，常用运维能力在同一工作空间内切换。
+- 组网隧道完善 FRPC、EasyTier 与 Cloudflare Tunnel，覆盖命名隧道、快捷隧道、临时快捷隧道和匿名隧道。
+- 完善 Docker 管理，集中管理容器、Compose 项目、本地镜像、镜像仓库、Docker 网络与镜像加速器，并支持重启 Docker 服务。
+- 完善系统状态，补充硬盘与 SMART、网络接口与流量、CPU、内存、GPU 和资源趋势，并支持桌面监控。
+- 完善文件管理，支持右键菜单、框选、快捷键、在线编辑、压缩解压和直接分享；分享链接支持密码与到期时间。
+- 静态网站支持默认主页、目录浏览与域名绑定。
+- 默认监听端口调整为 `19188`，fnOS 安装、升级与服务入口保持统一。
+
+## 仓库结构
 
 ```text
-code/                  Go 服务端与内嵌前端源码
-www/                   独立官网静态资源
-mdesk/                 fnOS 应用包结构
-output/                构建脚本与发布产物
+app/bin/               Linux amd64 / arm64 运行文件
+app/ui/                fnOS 桌面入口、图标与应用配置
+cmd/                   fnOS 安装、升级、卸载生命周期脚本
+config/                fnOS 权限与资源配置
+wizard/                fnOS 安装、配置与卸载向导
+manifest               fnOS 应用清单
+ICON.PNG               项目图标
+poster.webp            功能概览海报
+desktop-overview.webp  桌面系统总览
+1.webp - 7.webp        功能截图
 MDesk 使用手册.md      用户使用、部署与参数说明
 ```
 
@@ -132,7 +150,7 @@ MDesk 使用手册.md      用户使用、部署与参数说明
 > [!CAUTION]
 > M·Desk 的管理入口、终端与文件管理拥有较高权限。请使用强密码，优先通过 HTTPS、内网 ACL、VPN 或零信任网关访问，不要将管理入口直接暴露在不可信网络中。
 
-## 更新日志
+## 历史版本
 
 ### 2.5.38
 
