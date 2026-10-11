@@ -24,7 +24,7 @@
   <img src="https://raw.githubusercontent.com/IMGZCQ/MDesk/main/desktop-overview.webp" alt="M·Desk 桌面系统总览" width="52%">
 </p>
 
-M·Desk 一个高效轻便的服务器运维桌面系统；集结反代服务、本地终端、组网穿透、外链分享、静态网站、文件和Docker管理等服务；所以服务都基于单一端口实现，享受极致的管理体验！
+M·Desk 一个高效轻便的服务器运维桌面系统；集结反代服务、本地终端、组网穿透、外链分享、静态网站、文件和 Docker 管理等服务；所有服务都基于单一端口实现，享受极致的管理体验！
 
 ## 快速入口
 
@@ -144,7 +144,7 @@ docker run -d \
 
 Docker 管理需要挂载 Docker Socket。文件管理与终端默认只看到容器内文件，如需管理宿主机目录，请额外挂载对应卷。
 
-仓库 Actions secrets 需要配置 `DOCKERHUB_TOKEN`，建议使用 Docker Hub 的 Read & Write access token。Release 发布会推送 `latest`、版本号和完整标签；也可以通过 `workflow_dispatch` 手动补发指定版本，版本号填写 `2.6.57` 或 `v2.6.57` 均可。
+仓库 Actions secrets 需要配置 `DOCKERHUB_TOKEN`，建议使用 Docker Hub 的 Read & Write access token。Release 发布会推送 `latest`、版本号和完整标签；也可以通过 `workflow_dispatch` 手动补发指定版本，版本号填写 `2.7.58` 或 `v2.7.58` 均可。
 
 ### fnOS 安装包
 
@@ -160,10 +160,12 @@ Docker 管理需要挂载 Docker Socket。文件管理与终端默认只看到�
 ## 项目结构
 
 ```text
-code/                  Go 服务端与内嵌前端源码
-www/                   独立官网静态资源
-mdesk/                 fnOS 应用包结构
-output/                构建脚本与发布产物
+app/                   fnOS 应用运行文件与双架构二进制
+cmd/                   fnOS 安装、启动、升级与卸载脚本
+config/                fnOS 权限与资源声明
+wizard/                fnOS 安装向导配置
+Dockerfile             Docker Hub 多架构镜像构建文件
+manifest               fnOS 应用清单
 MDesk 使用手册.md      用户使用、部署与参数说明
 ```
 
@@ -171,12 +173,20 @@ MDesk 使用手册.md      用户使用、部署与参数说明
 
 ## 官网
 
-官网源码位于 `www/`，可以直接部署为静态站点。页面包含项目介绍、核心能力、优势说明、部署概览与响应式布局，所有文案均在 `www/index.html` 中维护。
+官网源码维护在项目主仓库的 `www/` 目录，可以直接部署为静态站点。页面包含项目介绍、核心能力、优势说明、部署概览与响应式布局。
 
 > [!CAUTION]
 > M·Desk 的管理入口、终端与文件管理拥有较高权限。请使用强密码，优先通过 HTTPS、内网 ACL、VPN 或零信任网关访问，不要将管理入口直接暴露在不可信网络中。
 
 ## 更新日志
+
+### 2.7.58
+
+- 完善主题与壁纸体系：支持深色、浅色、跟随系统，以及粉色、蓝色、Miku、Cyan 等主题；图表、对话框、提示、终端与对比度同步适配。
+- 增强桌面个性化与视觉细节：支持内置壁纸、用户壁纸、缩略图缓存、目录变化扫描、删除恢复与自动轮换，并优化桌面图标、文件夹、任务栏、窗口和壁纸表现。
+- 完善系统状态与关于面板：集中展示项目图标、名称、版本、磁盘卡片与表格、SMART、网络、CPU、内存、GPU 和资源趋势。
+- 强化 Docker 管理：补充可用性检测与降级界面，集中管理容器、Compose、镜像、镜像仓库、网络、Docker 服务重启与镜像加速器。
+- 保持 FRPC、EasyTier、Cloudflare Tunnel 多实例管理，覆盖 Cloudflare 命名隧道与快捷隧道；GitHub Releases 更新检测仅提示版本，不自动下载或替换程序。
 
 ### 2.6.57
 
