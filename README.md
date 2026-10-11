@@ -17,7 +17,7 @@
 > [!NOTE]
 > M·Desk 将服务路由、终端、文件、分享、静态网站、组网隧道、Docker 与系统状态收束到同一套桌面体验中，面向 NAS、家庭实验室、小型团队和重视数据自主的个人用户。
 
-<p align="center"><strong>当前版本：2.6.56</strong></p>
+<p align="center"><strong>当前版本：2.6.57</strong></p>
 
 <p align="center">
   <img src="https://raw.githubusercontent.com/IMGZCQ/MDesk/main/poster.webp" alt="M·Desk 功能概览" width="100%">
@@ -150,7 +150,7 @@ docker run -d \
 
 Docker 管理需要挂载 Docker Socket。文件管理与终端默认只看到容器内文件，如需管理宿主机目录，请额外挂载对应卷。
 
-仓库 Actions secrets 需要配置 `DOCKERHUB_TOKEN`，建议使用 Docker Hub 的 Read & Write access token。Release 发布会推送 `latest`、版本号和完整标签；也可以通过 `workflow_dispatch` 手动补发指定版本，版本号填写 `2.6.56` 或 `v2.6.56` 均可。
+仓库 Actions secrets 需要配置 `DOCKERHUB_TOKEN`，建议使用 Docker Hub 的 Read & Write access token。Release 发布会推送 `latest`、版本号和完整标签；也可以通过 `workflow_dispatch` 手动补发指定版本，版本号填写 `2.6.57` 或 `v2.6.57` 均可。
 
 ### fnOS 安装包
 
@@ -164,6 +164,12 @@ Docker 管理需要挂载 Docker Socket。文件管理与终端默认只看到�
 ---
 
 ## 版本记录
+
+### 2.6.57
+
+- 更新桌面内置应用图标与四套壁纸素材，统一整体视觉风格与资源清晰度。
+- 同步应用、官网、README、使用手册与 fnOS 清单版本到 `2.6.57`。
+- 重新构建 Windows、Linux amd64、Linux arm64 与 fnOS 安装包，确保发布产物包含最新素材。
 
 ### 2.6.56
 
