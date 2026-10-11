@@ -70,6 +70,26 @@ jobs:
         run: |
           set -euo pipefail
 
+          for attempt in $(seq 1 60); do
+            assets="$(gh release view "${RELEASE_TAG}" \
+              --repo "${GITHUB_REPOSITORY}" \
+              --json assets \
+              --jq '.assets[].name')"
+
+            if grep -qx "MDesk-linux-amd64" <<< "${assets}" &&
+               grep -qx "MDesk-linux-arm64" <<< "${assets}"; then
+              break
+            fi
+
+            if [ "${attempt}" -eq 60 ]; then
+              echo "Timed out waiting for Linux release assets." >&2
+              exit 1
+            fi
+
+            echo "Waiting for release assets (${attempt}/60)..."
+            sleep 10
+          done
+
           mkdir -p app/bin
           gh release download "${RELEASE_TAG}" \
             --repo "${GITHUB_REPOSITORY}" \
