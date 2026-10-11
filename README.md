@@ -102,6 +102,26 @@ Docker 管理建议在 Docker 所在 Linux 宿主机上运行，并确保 M·Des
 | `DOCKER_HOST` | 仅支持 `unix://...` 形式，暂不支持 TCP 连接 |
 | `DOCKER_DAEMON_CONFIG` | 自定义 Docker daemon 配置文件路径，默认 `/etc/docker/daemon.json` |
 
+### Docker 镜像
+
+GitHub Actions 会在发布 Release 时自动构建并推送 `linux/amd64` 与 `linux/arm64` 多架构镜像到 Docker Hub：
+
+```bash
+docker pull imgzcq/mdesk:latest
+
+docker run -d \
+  --name mdesk \
+  --restart unless-stopped \
+  -p 19188:19188 \
+  -v mdesk-data:/data \
+  -v /var/run/docker.sock:/var/run/docker.sock \
+  imgzcq/mdesk:latest
+```
+
+Docker 管理需要挂载 Docker Socket。文件管理与终端默认只看到容器内文件，如需管理宿主机目录，请额外挂载对应卷。
+
+仓库 Actions secrets 需要配置 `DOCKERHUB_USERNAME` 与 `DOCKERHUB_TOKEN`。Release 发布会推送 `latest`、版本号和完整标签；也可以通过 `workflow_dispatch` 手动补发指定版本。
+
 ### fnOS 安装包
 
 1. 从 [Releases](https://github.com/IMGZCQ/MDesk/releases) 下载最新的 `mdesk_<版本>.fpk`。

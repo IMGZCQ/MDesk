@@ -12,3 +12,6 @@ wizard/* text eol=lf
 *.PNG binary
 *.webp binary
 app/bin/* binary
+Dockerfile text eol=lf
+.dockerignore text eol=lf
+.github/workflows/*.yml text eol=lf
