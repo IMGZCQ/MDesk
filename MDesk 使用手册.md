@@ -46,7 +46,7 @@ M·Desk 是一套自托管桌面系统，把常用的服务入口、运维操作
 
 ### 1.3 桌面组成
 
-![M·Desk 桌面系统总览](./desktop-overview.webp)
+![M·Desk 桌面系统总览](https://raw.githubusercontent.com/IMGZCQ/MDesk/main/desktop-overview.webp)
 
 M·Desk 将侧栏、应用区与任务栏组织在同一张桌面中：
 
@@ -71,7 +71,7 @@ M·Desk 将侧栏、应用区与任务栏组织在同一张桌面中：
 
 服务路由用于统一管理多个服务入口。进入“服务路由”后，可以新增、编辑、启用、停用和删除服务，并设置默认入口。
 
-![服务路由列表](./1.webp)
+![服务路由列表](https://raw.githubusercontent.com/IMGZCQ/MDesk/main/1.webp)
 
 #### 重要说明
 

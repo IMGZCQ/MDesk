@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="./ICON.PNG" width="120" alt="M·Desk">
+  <img src="https://raw.githubusercontent.com/IMGZCQ/MDesk/main/ICON.PNG" width="120" alt="M·Desk">
 </p>
 
 <h1 align="center">M·Desk</h1>
@@ -20,13 +20,13 @@
 <p align="center"><strong>当前版本：2.6.42</strong></p>
 
 <p align="center">
-  <img src="./poster.webp" alt="M·Desk 功能概览" width="100%">
+  <img src="https://raw.githubusercontent.com/IMGZCQ/MDesk/main/poster.webp" alt="M·Desk 功能概览" width="100%">
 </p>
 
 ## 桌面系统总览
 
 <p align="center">
-  <img src="./desktop-overview.webp" alt="M·Desk 桌面系统总览" width="52%">
+  <img src="https://raw.githubusercontent.com/IMGZCQ/MDesk/main/desktop-overview.webp" alt="M·Desk 桌面系统总览" width="52%">
 </p>
 
 M·Desk 以桌面作为统一工作空间：侧栏组织服务路由、终端、文件、分享、静态网站、组网隧道、Docker 管理与系统状态；应用区集中呈现常用入口；任务栏承接窗口切换。模块之间共享一致的菜单、状态与反馈，让日常运维和内容流转保持连贯。
