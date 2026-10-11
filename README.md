@@ -14,11 +14,6 @@
   <a href="https://github.com/IMGZCQ/MDesk/issues">问题反馈</a>
 </p>
 
-> [!NOTE]
-> M·Desk 将服务路由、终端、文件、分享、静态网站、组网隧道、Docker 与系统状态收束到同一套桌面体验中，面向 NAS、家庭实验室、小型团队和重视数据自主的个人用户。
-
-<p align="center"><strong>当前版本：2.6.57</strong></p>
-
 <p align="center">
   <img src="https://raw.githubusercontent.com/IMGZCQ/MDesk/main/poster.webp" alt="M·Desk 功能概览" width="100%">
 </p>
@@ -29,7 +24,7 @@
   <img src="https://raw.githubusercontent.com/IMGZCQ/MDesk/main/desktop-overview.webp" alt="M·Desk 桌面系统总览" width="52%">
 </p>
 
-M·Desk 以桌面作为统一工作空间：侧栏组织服务路由、终端、文件、分享、静态网站、组网隧道、Docker 管理与系统状态；应用区集中呈现常用入口；任务栏承接窗口切换。模块之间共享一致的菜单、状态与反馈，让日常运维和内容流转保持连贯。
+M·Desk 一个高效轻便的服务器运维桌面系统；集结反代服务、本地终端、组网穿透、外链分享、静态网站、文件和Docker管理等服务；所以服务都基于单一端口实现，享受极致的管理体验！
 
 ## 快速入口
 
@@ -53,7 +48,6 @@ M·Desk 以桌面作为统一工作空间：侧栏组织服务路由、终端、
 | **组网隧道** | 支持 FRPC、EasyTier 与 Cloudflare Tunnel，并可分别管理多个实例；Cloudflare 提供命名隧道与快捷隧道两种模式。 |
 | **Docker 管理** | 管理容器、Compose 项目、本地镜像、镜像仓库、Docker 网络与镜像加速器，并支持重启 Docker 服务。 |
 | **系统状态** | 集中展示系统与硬件信息、硬盘和 SMART 健康、网络接口与流量、CPU、内存、GPU 与资源趋势。 |
-| **软件更新检测** | 从 GitHub Releases 检查最新版本，支持自动检测与手动重检，只提示发布信息，不自动下载或替换文件。 |
 
 ---
 
@@ -163,7 +157,26 @@ Docker 管理需要挂载 Docker Socket。文件管理与终端默认只看到�
 
 ---
 
-## 版本记录
+## 项目结构
+
+```text
+code/                  Go 服务端与内嵌前端源码
+www/                   独立官网静态资源
+mdesk/                 fnOS 应用包结构
+output/                构建脚本与发布产物
+MDesk 使用手册.md      用户使用、部署与参数说明
+```
+
+---
+
+## 官网
+
+官网源码位于 `www/`，可以直接部署为静态站点。页面包含项目介绍、核心能力、优势说明、部署概览与响应式布局，所有文案均在 `www/index.html` 中维护。
+
+> [!CAUTION]
+> M·Desk 的管理入口、终端与文件管理拥有较高权限。请使用强密码，优先通过 HTTPS、内网 ACL、VPN 或零信任网关访问，不要将管理入口直接暴露在不可信网络中。
+
+## 更新日志
 
 ### 2.6.57
 
@@ -173,10 +186,10 @@ Docker 管理需要挂载 Docker Socket。文件管理与终端默认只看到�
 
 ### 2.6.56
 
-- 统一应用内“关于”、首页、README 与使用手册的产品定位：M·Desk 是面向 NAS、家庭实验室与小团队的自托管桌面系统。
-- 重构官网与文档的能力介绍，覆盖服务路由、终端、文件与媒体、外链分享、静态网站、FRPC / EasyTier / Cloudflare Tunnel、Docker 管理与系统状态。
-- 补充 Docker Socket 挂载、Compose 示例、GitHub Releases 更新检测与安全提示；仓库文档图片改用 GitHub 绝对地址。
-- 更新 Windows、Linux amd64、Linux arm64 与 fnOS 安装包，确保下载产物和当前帮助文档同步。
+- 统一应用内“关于”、官网、README 与使用手册的产品定位：M·Desk 是面向 NAS、家庭实验室与小型团队的自托管桌面系统。
+- 重新整理官网与文档的能力介绍，完整覆盖服务路由、终端、文件与媒体、外链分享、静态网站、FRPC / EasyTier / Cloudflare Tunnel、Docker 管理与系统状态。
+- 补充 Docker Socket 挂载、Compose 示例、GitHub Releases 更新检测与安全提示，并让仓库文档图片使用 GitHub 绝对地址。
+- 重新构建 Windows、Linux amd64、Linux arm64 与 fnOS 安装包，确保发布产物包含最新文案与文档同步内容。
 
 ### 2.6.55
 
@@ -201,33 +214,6 @@ Docker 管理需要挂载 Docker Socket。文件管理与终端默认只看到�
 - 完善文件管理，支持右键菜单、框选、快捷键、在线编辑、压缩解压和直接分享；分享链接支持密码与到期时间。
 - 静态网站支持默认主页、目录浏览与域名绑定。
 - 默认监听端口调整为 `19188`，fnOS 安装、升级与服务入口保持统一。
-
-## 仓库结构
-
-```text
-app/bin/               Linux amd64 / arm64 运行文件
-app/ui/                fnOS 桌面入口、图标与应用配置
-cmd/                   fnOS 安装、升级、卸载生命周期脚本
-config/                fnOS 权限与资源配置
-wizard/                fnOS 安装、配置与卸载向导
-manifest               fnOS 应用清单
-ICON.PNG               项目图标
-poster.webp            功能概览海报
-desktop-overview.webp  桌面系统总览
-1.webp - 7.webp        功能截图
-MDesk 使用手册.md      用户使用、部署与参数说明
-```
-
----
-
-## 官网
-
-本仓库面向发布与安装，包含运行文件、fnOS 包结构、Docker 构建文件和配套文档资源；官网源码与静态页面独立维护。
-
-> [!CAUTION]
-> M·Desk 的管理入口、终端与文件管理拥有较高权限。请使用强密码，优先通过 HTTPS、内网 ACL、VPN 或零信任网关访问，不要将管理入口直接暴露在不可信网络中。
-
-## 历史版本
 
 ### 2.5.38
 
