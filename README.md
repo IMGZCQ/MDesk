@@ -104,7 +104,7 @@ Docker 管理建议在 Docker 所在 Linux 宿主机上运行，并确保 M·Des
 
 ### Docker 镜像
 
-GitHub Actions 会在发布 Release 时自动构建并推送 `linux/amd64` 与 `linux/arm64` 多架构镜像到 Docker Hub：
+GitHub Actions 会在发布 Release 时自动读取该 Release 的 `MDesk-linux-amd64` 与 `MDesk-linux-arm64` 资产，构建并推送 `linux/amd64` 与 `linux/arm64` 多架构镜像到 Docker Hub：
 
 ```bash
 docker pull imgzcq/mdesk:latest

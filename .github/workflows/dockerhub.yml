@@ -26,10 +26,10 @@ jobs:
   publish:
     runs-on: ubuntu-latest
     steps:
-      - name: Check out release tag
+      - name: Check out release tooling
         uses: actions/checkout@v4
         with:
-          ref: ${{ github.event.release.tag_name || github.event.inputs.tag }}
+          ref: ${{ github.event.repository.default_branch }}
 
       - name: Resolve release version
         id: version
@@ -55,6 +55,26 @@ jobs:
           echo "tag=${RELEASE_TAG}" >> "$GITHUB_OUTPUT"
           echo "version=${version}" >> "$GITHUB_OUTPUT"
           echo "publish_latest=${publish_latest}" >> "$GITHUB_OUTPUT"
+
+      - name: Download release binaries
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ steps.version.outputs.tag }}
+        run: |
+          set -euo pipefail
+
+          mkdir -p app/bin
+          gh release download "${RELEASE_TAG}" \
+            --repo "${GITHUB_REPOSITORY}" \
+            --pattern "MDesk-linux-amd64" \
+            --pattern "MDesk-linux-arm64" \
+            --dir app/bin \
+            --clobber
+
+          mv app/bin/MDesk-linux-amd64 app/bin/MDesk-amd64
+          mv app/bin/MDesk-linux-arm64 app/bin/MDesk-arm64
+          chmod 0755 app/bin/MDesk-amd64 app/bin/MDesk-arm64
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
