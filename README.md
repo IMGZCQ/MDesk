@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="./ICON.PNG" width="120" alt="M·Desk">
+  <img src="./mdesk/ICON.PNG" width="120" alt="M·Desk">
 </p>
 
 <h1 align="center">M·Desk</h1>
@@ -17,11 +17,19 @@
 > [!NOTE]
 > M·Desk 将服务路由、终端、文件、分享、静态网站、组网隧道、Docker 与系统状态收束到同一套桌面体验中，面向 NAS、家庭实验室、小型团队和重视数据自主的个人用户。
 
-<p align="center"><strong>当前版本：2.3.28</strong></p>
+<p align="center"><strong>当前版本：2.5.38</strong></p>
 
 <p align="center">
-  <img src="./poster.webp" alt="M·Desk 功能概览" width="100%">
+  <img src="./www/assets/poster.webp" alt="M·Desk 功能概览" width="100%">
 </p>
+
+## 桌面系统总览
+
+<p align="center">
+  <img src="./www/assets/desktop-overview.webp" alt="M·Desk 桌面系统总览" width="52%">
+</p>
+
+M·Desk 以桌面作为统一工作空间：侧栏组织服务路由、终端、文件、分享、静态网站、组网隧道、Docker 管理与系统状态；应用区集中呈现常用入口；任务栏承接窗口切换。模块之间共享一致的菜单、状态与反馈，让日常运维和内容流转保持连贯。
 
 ## 快速入口
 
@@ -43,7 +51,7 @@
 | **外链分享** | 为文件或目录生成分享链接，可设置访问密码、到期时间、启停状态。 |
 | **静态网站** | 选择一个本地目录即可发布为静态网站，支持默认主页、目录浏览与域名绑定。 |
 | **组网隧道** | 支持 FRPC、EasyTier 与 Cloudflare Tunnel；Cloudflare 支持命名隧道和快捷隧道。 |
-| **Docker 管理** | 管理容器、Compose 项目、本地镜像、镜像仓库、Docker 网络与镜像加速器，并支持重启 Docker 服务。 |
+| **Docker管理** | 管理容器、Compose 项目、本地镜像、镜像仓库、Docker 网络与镜像加速器，并支持重启 Docker 服务。 |
 | **系统状态** | 集中展示系统与硬件信息、硬盘和 SMART 健康、网络接口与流量、CPU、内存、GPU 与资源趋势。 |
 
 ---
@@ -61,7 +69,7 @@ chmod +x ./MDesk-linux-amd64
 ./MDesk-linux-amd64
 ```
 
-4. 默认监听 HTTP `9788` 端口，访问 `http://<设备地址>:9788/@admin`。
+4. 默认监听 HTTP `19188` 端口，访问 `http://<设备地址>:19188/@admin`。
 5. 首次访问时设置管理密码。
 
 ARM64 设备请将文件名替换为 `MDesk-linux-arm64`。可通过启动参数调整访问协议、监听地址、数据目录、日志和组网配置，完整说明见 [MDesk 使用手册](./MDesk%20使用手册.md)。
@@ -72,7 +80,7 @@ ARM64 设备请将文件名替换为 `MDesk-linux-arm64`。可通过启动参数
 | --- | --- |
 | `-scheme` | 设置 HTTP 或 HTTPS，默认 `http` |
 | `-addr` | 设置完整监听地址，例如 `127.0.0.1:8080` 或 `:8080`；与 `-port` 二选一，`-addr` 优先 |
-| `-port` | 设置监听端口，默认 `9788` |
+| `-port` | 设置监听端口，默认 `19188` |
 | `-data` | 设置数据目录，默认使用程序所在目录下的 `data` |
 | `-log` | 设置运行日志文件；按 5MB 轮转并保留 3 份 |
 | `-reset-password` | 重置管理密码后退出程序 |
@@ -98,33 +106,47 @@ Docker 管理建议在 Docker 所在 Linux 宿主机上运行，并确保 M·Des
 
 1. 从 [Releases](https://github.com/IMGZCQ/MDesk/releases) 下载最新的 `mdesk_<版本>.fpk`。
 2. 在 fnOS 应用中心手动安装。
-3. 安装过程中可选择 HTTP 或 HTTPS，默认使用 HTTP 和 `9788` 端口。
-4. 安装完成后访问 `http://<设备地址>:9788/@admin`，首次访问时设置管理密码。
+3. 安装过程中可选择 HTTP 或 HTTPS，默认使用 HTTP 和 `19188` 端口。
+4. 安装完成后访问 `http://<设备地址>:19188/@admin`，首次访问时设置管理密码。
 
 服务路由、终端、文件管理、外链分享、静态网站、组网隧道、Docker 与系统状态的详细操作，请查看 [MDesk 使用手册](./MDesk%20使用手册.md)。
 
 ---
 
-## 仓库结构
+## 项目结构
 
 ```text
-app/bin/               Linux amd64 / arm64 运行文件
-app/ui/                fnOS 桌面入口、图标与应用配置
-cmd/                   fnOS 安装、升级、卸载生命周期脚本
-config/                fnOS 权限与资源配置
-wizard/                fnOS 安装、配置与卸载向导
-manifest               fnOS 应用清单
-ICON.PNG               项目图标
-poster.webp            功能概览海报
-1.webp - 7.webp        功能截图
+code/                  Go 服务端与内嵌前端源码
+www/                   独立官网静态资源
+mdesk/                 fnOS 应用包结构
+output/                构建脚本与发布产物
 MDesk 使用手册.md      用户使用、部署与参数说明
 ```
 
 ---
 
-## 发布说明
+## 官网
 
-本仓库用于保存 M·Desk 的 fnOS 发布结构、运行文件、应用图标、功能截图与使用文档，不包含 Go 源码。发布文件可直接用于应用安装包制作与版本分发。
+官网源码位于 `www/`，可以直接部署为静态站点。页面包含项目介绍、核心能力、优势说明、部署概览与响应式布局，所有文案均在 `www/index.html` 中维护。
 
 > [!CAUTION]
 > M·Desk 的管理入口、终端与文件管理拥有较高权限。请使用强密码，优先通过 HTTPS、内网 ACL、VPN 或零信任网关访问，不要将管理入口直接暴露在不可信网络中。
+
+## 更新日志
+
+### 2.5.38
+
+- 文件管理支持按 `Ctrl+A` 在“全选/不选”之间切换。
+- 文件编辑器支持按 `Ctrl+S` 快速保存当前文件。
+
+### 2.5.35
+
+- 文件管理支持选中单个文件或文件夹后按 `Enter` 打开或进入。
+- 文件管理支持按 `Backspace` 返回上级目录。
+- 文件管理状态栏在选中单个文件时显示文件大小，多选时保持显示选中数量。
+
+### 2.5.34
+
+- 文件管理右键菜单为常用操作增加快捷键提示。
+- 修复 `F2` 重命名快捷键，支持对当前焦点文件直接触发重命名。
+- 空白区域右键菜单在存在可粘贴内容时显示“粘贴”，并提示 `Ctrl+V`。
