@@ -17,7 +17,7 @@
 > [!NOTE]
 > M·Desk 将服务路由、终端、文件、分享、静态网站、组网隧道、Docker 与系统状态收束到同一套桌面体验中，面向 NAS、家庭实验室、小型团队和重视数据自主的个人用户。
 
-<p align="center"><strong>当前版本：2.6.42</strong></p>
+<p align="center"><strong>当前版本：2.6.53</strong></p>
 
 <p align="center">
   <img src="https://raw.githubusercontent.com/IMGZCQ/MDesk/main/poster.webp" alt="M·Desk 功能概览" width="100%">
@@ -50,7 +50,7 @@ M·Desk 以桌面作为统一工作空间：侧栏组织服务路由、终端、
 | **文件管理** | 在线浏览、编辑、上传下载、压缩解压；支持右键菜单、框选和直接分享。 |
 | **外链分享** | 为文件或目录生成分享链接，可设置访问密码、到期时间、启停状态。 |
 | **静态网站** | 选择一个本地目录即可发布为静态网站，支持默认主页、目录浏览与域名绑定。 |
-| **组网隧道** | 支持 FRPC、EasyTier 与 Cloudflare Tunnel；Cloudflare 提供命名隧道、快捷隧道、临时快捷隧道与匿名隧道等模式。 |
+| **组网隧道** | 支持 FRPC、EasyTier 与 Cloudflare Tunnel，并可分别管理多个实例；Cloudflare 提供命名隧道与快捷隧道两种模式。 |
 | **Docker 管理** | 管理容器、Compose 项目、本地镜像、镜像仓库、Docker 网络与镜像加速器，并支持重启 Docker 服务。 |
 | **系统状态** | 集中展示系统与硬件信息、硬盘和 SMART 健康、网络接口与流量、CPU、内存、GPU 与资源趋势。 |
 
@@ -150,7 +150,7 @@ docker run -d \
 
 Docker 管理需要挂载 Docker Socket。文件管理与终端默认只看到容器内文件，如需管理宿主机目录，请额外挂载对应卷。
 
-仓库 Actions secrets 需要配置 `DOCKERHUB_TOKEN`，建议使用 Docker Hub 的 Read & Write access token。Release 发布会推送 `latest`、版本号和完整标签；也可以通过 `workflow_dispatch` 手动补发指定版本，版本号填写 `2.6.42` 或 `v2.6.42` 均可。
+仓库 Actions secrets 需要配置 `DOCKERHUB_TOKEN`，建议使用 Docker Hub 的 Read & Write access token。Release 发布会推送 `latest`、版本号和完整标签；也可以通过 `workflow_dispatch` 手动补发指定版本，版本号填写 `2.6.53` 或 `v2.6.53` 均可。
 
 ### fnOS 安装包
 
@@ -165,10 +165,18 @@ Docker 管理需要挂载 Docker Socket。文件管理与终端默认只看到�
 
 ## 版本记录
 
+### 2.6.53
+
+- 新增桌面主题与壁纸配置，支持深色、浅色、跟随系统，以及多套内置壁纸。
+- 新增图片预览、音视频播放器与播放列表，文件管理中的媒体文件可直接在桌面窗口中打开。
+- 组网隧道支持按类型管理多个实例，FRPC、EasyTier 与 Cloudflare Tunnel 可独立配置、启停和查看日志。
+- 优化服务路由、桌面窗口与响应式布局，改善多窗口切换、窄屏显示和常用操作体验。
+- 系统状态支持桌面监控与资源趋势采样，折叠、展开和存储分别采用独立的刷新节奏。
+
 ### 2.6.42
 
 - 桌面系统完成侧栏、应用区、任务栏与多窗口体验整合，常用运维能力在同一工作空间内切换。
-- 组网隧道完善 FRPC、EasyTier 与 Cloudflare Tunnel，覆盖命名隧道、快捷隧道、临时快捷隧道和匿名隧道。
+- 组网隧道完善 FRPC、EasyTier 与 Cloudflare Tunnel，覆盖命名隧道与快捷隧道。
 - 完善 Docker 管理，集中管理容器、Compose 项目、本地镜像、镜像仓库、Docker 网络与镜像加速器，并支持重启 Docker 服务。
 - 完善系统状态，补充硬盘与 SMART、网络接口与流量、CPU、内存、GPU 和资源趋势，并支持桌面监控。
 - 完善文件管理，支持右键菜单、框选、快捷键、在线编辑、压缩解压和直接分享；分享链接支持密码与到期时间。
