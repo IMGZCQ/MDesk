@@ -41,6 +41,7 @@ M·Desk 一个高效轻便的服务器运维桌面系统；集结反代服务、
 | 模块 | 说明 |
 | --- | --- |
 | **服务路由** | 统一管理多个服务入口，支持域名绑定与快速切换，各服务保持原有访问路径。 |
+| **fnOS 应用接入** | 扫描 fnOS 应用中心，将端口、Unix Socket 与 CGI 应用接入桌面，支持应用图标、版本、访问入口与安全路径校验。 |
 | **本地终端** | 浏览器中的多会话终端，支持后台保活、快捷命令与右键菜单操作。 |
 | **文件管理** | 在线浏览、编辑、上传下载、压缩解压；支持右键菜单、框选和直接分享。 |
 | **外链分享** | 为文件或目录生成分享链接，可设置访问密码、到期时间、启停状态。 |
@@ -62,7 +63,7 @@ M·Desk 一个高效轻便的服务器运维桌面系统；集结反代服务、
 | Windows 桌面版 | `MDesk-Windows-Desktop.exe` | 使用桌面窗口承载管理界面 |
 | Linux amd64 | `MDesk-linux-amd64` | 适用于常见 x86_64 设备 |
 | Linux arm64 | `MDesk-linux-arm64` | 适用于 ARM64 设备 |
-| fnOS | `MDesk_2.7.63.fpk` | 支持 amd64 与 arm64 |
+| fnOS | `MDesk_2.7.68.fpk` | 支持 amd64 与 arm64 |
 
 ### Linux 命令行
 
@@ -155,11 +156,11 @@ docker run -d \
 
 Docker 管理需要挂载 Docker Socket。文件管理与终端默认只看到容器内文件，如需管理宿主机目录，请额外挂载对应卷。
 
-仓库 Actions secrets 需要配置 `DOCKERHUB_TOKEN`，建议使用 Docker Hub 的 Read & Write access token。Release 发布会推送 `latest`、版本号和完整标签；也可以通过 `workflow_dispatch` 手动补发指定版本，版本号填写 `2.7.63` 或 `v2.7.63` 均可。
+仓库 Actions secrets 需要配置 `DOCKERHUB_TOKEN`，建议使用 Docker Hub 的 Read & Write access token。Release 发布会推送 `latest`、版本号和完整标签；也可以通过 `workflow_dispatch` 手动补发指定版本，版本号填写 `2.7.68` 或 `v2.7.68` 均可。
 
 ### fnOS 安装包
 
-1. 从 [Releases](https://github.com/IMGZCQ/MDesk/releases) 下载最新的 `MDesk_2.7.63.fpk`。
+1. 从 [Releases](https://github.com/IMGZCQ/MDesk/releases) 下载最新的 `MDesk_2.7.68.fpk`。
 2. 在 fnOS 应用中心手动安装。
 3. 安装过程中可选择 HTTP 或 HTTPS，默认使用 HTTP 和 `19188` 端口。
 4. 安装完成后访问 `http://<设备地址>:19188/@admin`，首次访问时设置管理密码。
@@ -171,6 +172,7 @@ Docker 管理需要挂载 Docker Socket。文件管理与终端默认只看到�
 ## 项目结构
 
 ```text
+.github/workflows/     Docker Hub 多架构发布流程
 app/                   fnOS 应用运行文件与双架构二进制
 cmd/                   fnOS 安装、启动、升级与卸载脚本
 config/                fnOS 权限与资源声明
@@ -184,12 +186,22 @@ MDesk 使用手册.md      用户使用、部署与参数说明
 
 ## 官网
 
-官网源码维护在项目主仓库的 `www/` 目录，可以直接部署为静态站点。页面包含项目介绍、核心能力、优势说明、部署概览与响应式布局。
+官网源码由本地 `www/` 目录维护，可以直接部署为静态站点。页面包含项目介绍、核心能力、优势说明、部署概览与响应式布局，所有文案均在 `www/index.html` 中维护；发布仓库不包含该目录。
 
 > [!CAUTION]
 > M·Desk 的管理入口、终端与文件管理拥有较高权限。请使用强密码，优先通过 HTTPS、内网 ACL、VPN 或零信任网关访问，不要将管理入口直接暴露在不可信网络中。
 
 ## 更新日志
+
+### 2.7.68
+
+- 新增 fnOS 应用中心接入，扫描 `/var/apps` 并读取应用名称、版本、图标与访问方式。
+- 支持端口、Unix Socket 与 CGI 应用代理，提供 `/app/...`、`/cgi/...` 入口，并兼容 Cookie、Session Token、Location、错误页和路径重写。
+- 增加路径穿越、符号链接逃逸与应用边界校验，提升 fnOS 应用接入的安全性。
+- 新增域名直连路由：精确 Host 优先，反代服务与静态站点均可直接绑定域名，并增加域名冲突校验。
+- 桌面配置升级到 v7，持久化窗口位置、尺寸、最大化与吸附状态，以及图标、链接、文件系统快捷方式和 fnOS 应用绑定。
+- 系统状态显示当前构建版本，并支持与 GitHub Releases 最新版本比较和手动重新检测。
+- 同步官网、README、使用手册与 fnOS 清单到 `2.7.68`，重新构建 Windows 服务版、Windows 桌面版、Linux amd64、Linux arm64 与 fnOS 安装包。
 
 ### 2.7.63
 
