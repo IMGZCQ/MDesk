@@ -259,7 +259,7 @@ SMART 数据只作为设备健康参考，不会自动修复硬盘，也不会�
 
 ### 3.1 部署
 
-Windows 服务版使用 `MDesk服务版.exe`，在后台提供管理服务，适合长期运行；Windows 桌面版使用 `MDesk桌面版.exe`，以桌面窗口承载管理界面。两者与 Linux、fnOS 版本使用同一套数据目录与管理能力。
+Windows 服务版使用 `MDesk-Windows-Service.exe`，在后台提供管理服务，适合长期运行；Windows 桌面版使用 `MDesk-Windows-Desktop.exe`，以桌面窗口承载管理界面。两者与 Linux、fnOS 版本使用同一套数据目录与管理能力。
 
 Linux 命令行部署：
 

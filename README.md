@@ -58,8 +58,8 @@ M·Desk 一个高效轻便的服务器运维桌面系统；集结反代服务、
 
 | 平台 | 文件 | 说明 |
 | --- | --- | --- |
-| Windows 服务版 | `MDesk服务版.exe` | 在后台提供管理服务，适合长期运行 |
-| Windows 桌面版 | `MDesk桌面版.exe` | 使用桌面窗口承载管理界面 |
+| Windows 服务版 | `MDesk-Windows-Service.exe` | 在后台提供管理服务，适合长期运行 |
+| Windows 桌面版 | `MDesk-Windows-Desktop.exe` | 使用桌面窗口承载管理界面 |
 | Linux amd64 | `MDesk-linux-amd64` | 适用于常见 x86_64 设备 |
 | Linux arm64 | `MDesk-linux-arm64` | 适用于 ARM64 设备 |
 | fnOS | `MDesk_2.7.63.fpk` | 支持 amd64 与 arm64 |
