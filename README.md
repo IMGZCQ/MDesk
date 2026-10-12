@@ -47,11 +47,22 @@ M·Desk 一个高效轻便的服务器运维桌面系统；集结反代服务、
 | **静态网站** | 选择一个本地目录即可发布为静态网站，支持默认主页、目录浏览与域名绑定。 |
 | **组网隧道** | 支持 FRPC、EasyTier 与 Cloudflare Tunnel，并可分别管理多个实例；Cloudflare 提供命名隧道与快捷隧道两种模式。 |
 | **Docker 管理** | 管理容器、Compose 项目、本地镜像、镜像仓库、Docker 网络与镜像加速器，并支持重启 Docker 服务。 |
+| **进程管理** | 查看真实进程列表、PID、用户、状态、CPU、内存、启动时间与可执行路径；支持搜索、端口反查、排序筛选、详情与安全结束进程。 |
 | **系统状态** | 集中展示系统与硬件信息、硬盘和 SMART 健康、网络接口与流量、CPU、内存、GPU 与资源趋势。 |
 
 ---
 
 ## 快速开始
+
+### 发布文件
+
+| 平台 | 文件 | 说明 |
+| --- | --- | --- |
+| Windows 服务版 | `MDesk服务版.exe` | 在后台提供管理服务，适合长期运行 |
+| Windows 桌面版 | `MDesk桌面版.exe` | 使用桌面窗口承载管理界面 |
+| Linux amd64 | `MDesk-linux-amd64` | 适用于常见 x86_64 设备 |
+| Linux arm64 | `MDesk-linux-arm64` | 适用于 ARM64 设备 |
+| fnOS | `MDesk_2.7.63.fpk` | 支持 amd64 与 arm64 |
 
 ### Linux 命令行
 
@@ -144,16 +155,16 @@ docker run -d \
 
 Docker 管理需要挂载 Docker Socket。文件管理与终端默认只看到容器内文件，如需管理宿主机目录，请额外挂载对应卷。
 
-仓库 Actions secrets 需要配置 `DOCKERHUB_TOKEN`，建议使用 Docker Hub 的 Read & Write access token。Release 发布会推送 `latest`、版本号和完整标签；也可以通过 `workflow_dispatch` 手动补发指定版本，版本号填写 `2.7.59` 或 `v2.7.59` 均可。
+仓库 Actions secrets 需要配置 `DOCKERHUB_TOKEN`，建议使用 Docker Hub 的 Read & Write access token。Release 发布会推送 `latest`、版本号和完整标签；也可以通过 `workflow_dispatch` 手动补发指定版本，版本号填写 `2.7.63` 或 `v2.7.63` 均可。
 
 ### fnOS 安装包
 
-1. 从 [Releases](https://github.com/IMGZCQ/MDesk/releases) 下载最新的 `mdesk_<版本>.fpk`。
+1. 从 [Releases](https://github.com/IMGZCQ/MDesk/releases) 下载最新的 `MDesk_2.7.63.fpk`。
 2. 在 fnOS 应用中心手动安装。
 3. 安装过程中可选择 HTTP 或 HTTPS，默认使用 HTTP 和 `19188` 端口。
 4. 安装完成后访问 `http://<设备地址>:19188/@admin`，首次访问时设置管理密码。
 
-服务路由、终端、文件管理、外链分享、静态网站、组网隧道、Docker 与系统状态的详细操作，请查看 [MDesk 使用手册](./MDesk%20使用手册.md)。
+服务路由、终端、文件管理、外链分享、静态网站、组网隧道、Docker、进程管理与系统状态的详细操作，请查看 [MDesk 使用手册](./MDesk%20使用手册.md)。
 
 ---
 
@@ -179,6 +190,13 @@ MDesk 使用手册.md      用户使用、部署与参数说明
 > M·Desk 的管理入口、终端与文件管理拥有较高权限。请使用强密码，优先通过 HTTPS、内网 ACL、VPN 或零信任网关访问，不要将管理入口直接暴露在不可信网络中。
 
 ## 更新日志
+
+### 2.7.63
+
+- 新增进程管理，支持进程、端口和资源状态查询，以及经过身份校验的安全操作。
+- 新增 Windows 桌面版，与服务版并列发布；桌面版使用独立桌面窗口承载管理界面。
+- 同步官网、README、使用手册与 fnOS 清单到 `2.7.63`。
+- 重新构建 Windows 服务版、Windows 桌面版、Linux amd64、Linux arm64 与 fnOS 安装包。
 
 ### 2.7.59
 
