@@ -47,9 +47,9 @@ M·Desk 一个高效轻便的服务器运维桌面系统；集结反代服务、
 | **外链分享** | 为文件或目录生成分享链接，可设置访问密码、到期时间、启停状态。 |
 | **静态网站** | 选择一个本地目录即可发布为静态网站，支持默认主页、目录浏览与域名绑定。 |
 | **组网隧道** | 支持 FRPC、EasyTier 与 Cloudflare Tunnel，并可分别管理多个实例；Cloudflare 提供命名隧道与快捷隧道两种模式。 |
-| **Docker 管理** | 管理容器、Compose 项目、本地镜像、镜像仓库、Docker 网络与镜像加速器，并支持重启 Docker 服务。 |
+| **Docker 管理** | 管理容器、Compose 项目、本地镜像、镜像仓库、Docker 网络与镜像加速器；支持镜像更新检测、拉取新镜像、重建容器或 Compose 服务，并支持重启 Docker 服务。 |
 | **进程管理** | 查看真实进程列表、PID、用户、状态、CPU、内存、启动时间与可执行路径；支持搜索、端口反查、排序筛选、详情与安全结束进程。 |
-| **系统状态** | 集中展示系统与硬件信息、硬盘和 SMART 健康、网络接口与流量、CPU、内存、GPU 与资源趋势。 |
+| **系统状态** | 集中展示系统与硬件信息、硬盘和 SMART 健康、网络接口与流量、CPU、内存、GPU 与资源趋势；后台统一采样记录 CPU、内存、GPU、网络和磁盘读写趋势，Linux 补充网卡链路速率读取并优化磁盘拓扑呈现。 |
 
 ---
 
@@ -63,11 +63,12 @@ M·Desk 一个高效轻便的服务器运维桌面系统；集结反代服务、
 | Windows 桌面版 | `MDesk-Windows-Desktop.exe` | 使用桌面窗口承载管理界面 |
 | Linux amd64 | `MDesk-linux-amd64` | 适用于常见 x86_64 设备 |
 | Linux arm64 | `MDesk-linux-arm64` | 适用于 ARM64 设备 |
-| fnOS | `MDesk_2.7.72.fpk` | 支持 amd64 与 arm64 |
+| Linux armv7 | `MDesk-linux-armv7` | 适用于 32 位 ARMv7 设备 |
+| fnOS | `MDesk_2.7.86.fpk` | 支持 amd64 与 arm64 |
 
 ### Linux 命令行
 
-1. 从 [Releases](https://github.com/IMGZCQ/MDesk/releases) 下载匹配架构的 `MDesk-linux-amd64` 或 `MDesk-linux-arm64`。
+1. 从 [Releases](https://github.com/IMGZCQ/MDesk/releases) 下载匹配架构的 `MDesk-linux-amd64`、`MDesk-linux-arm64` 或 `MDesk-linux-armv7`。
 2. 将文件放到可写目录，确保同级目录能够创建 `data` 数据目录。
 3. 赋予执行权限并启动：
 
@@ -79,7 +80,7 @@ chmod +x ./MDesk-linux-amd64
 4. 默认监听 HTTP `19188` 端口，访问 `http://<设备地址>:19188/@admin`。
 5. 首次访问时设置管理密码。
 
-ARM64 设备请将文件名替换为 `MDesk-linux-arm64`。可通过启动参数调整访问协议、监听地址、数据目录、日志和组网配置，完整说明见 [MDesk 使用手册](./MDesk%20使用手册.md)。
+ARM64 设备请将文件名替换为 `MDesk-linux-arm64`，32 位 ARMv7 设备请使用 `MDesk-linux-armv7`。可通过启动参数调整访问协议、监听地址、数据目录、日志和组网配置，完整说明见 [MDesk 使用手册](./MDesk%20使用手册.md)。
 
 ### 常用启动参数
 
@@ -111,7 +112,7 @@ Docker 管理建议在 Docker 所在 Linux 宿主机上运行，并确保 M·Des
 
 ### Docker 镜像
 
-GitHub Actions 会在发布 Release 时自动读取该 Release 的 `MDesk-linux-amd64` 与 `MDesk-linux-arm64` 资产，构建并推送 `linux/amd64` 与 `linux/arm64` 多架构镜像到 Docker Hub：
+GitHub Actions 会在发布 Release 时自动读取该 Release 的 `MDesk-linux-amd64`、`MDesk-linux-arm64` 与 `MDesk-linux-armv7` 资产，构建并推送 `linux/amd64`、`linux/arm64` 与 `linux/arm/v7` 多架构镜像到 Docker Hub：
 
 #### Docker Compose
 
@@ -156,11 +157,11 @@ docker run -d \
 
 Docker 管理需要挂载 Docker Socket。文件管理与终端默认只看到容器内文件，如需管理宿主机目录，请额外挂载对应卷。
 
-仓库 Actions secrets 需要配置 `DOCKERHUB_TOKEN`，建议使用 Docker Hub 的 Read & Write access token。Release 发布会推送 `latest`、版本号和完整标签；也可以通过 `workflow_dispatch` 手动补发指定版本，版本号填写 `2.7.72` 或 `v2.7.72` 均可。
+仓库 Actions secrets 需要配置 `DOCKERHUB_TOKEN`，建议使用 Docker Hub 的 Read & Write access token。Release 发布会推送 `latest`、版本号和完整标签；也可以通过 `workflow_dispatch` 手动补发指定版本，版本号填写 `2.7.86` 或 `v2.7.86` 均可。
 
 ### fnOS 安装包
 
-1. 从 [Releases](https://github.com/IMGZCQ/MDesk/releases) 下载最新的 `MDesk_2.7.72.fpk`。
+1. 从 [Releases](https://github.com/IMGZCQ/MDesk/releases) 下载最新的 `MDesk_2.7.86.fpk`。
 2. 在 fnOS 应用中心手动安装。
 3. 安装过程中可选择 HTTP 或 HTTPS，默认使用 HTTP 和 `19188` 端口。
 4. 安装完成后访问 `http://<设备地址>:19188/@admin`，首次访问时设置管理密码。
@@ -192,6 +193,21 @@ MDesk 使用手册.md      用户使用、部署与参数说明
 > M·Desk 的管理入口、终端与文件管理拥有较高权限。请使用强密码，优先通过 HTTPS、内网 ACL、VPN 或零信任网关访问，不要将管理入口直接暴露在不可信网络中。
 
 ## 更新日志
+
+### 2.7.86
+
+- Docker 管理新增镜像更新检测：本地镜像、Compose 服务与容器，支持拉取新镜像、重建容器或 Compose 服务。
+- 系统监控改为后台统一采样，集中记录 CPU、内存、GPU、网络和磁盘读写趋势，打开监控面板即可查看连续数据，减少重复采集。
+- 完善桌面任务栏与开始菜单：支持应用固定与取消固定、窗口切换、最小化与恢复，以及任务栏右键操作，多窗口使用更加连贯。
+- 增强 Linux 网络与磁盘信息展示：补充网卡链路速率读取，并优化磁盘拓扑识别与呈现。
+- 增加对 32 位 ARMv7 架构的设备支持（仅增加编译与发布，暂未在实体设备上验证）。
+- 同步官网、README、使用手册与 fnOS 清单到 `2.7.86`，重新构建 Windows 服务版、Windows 桌面版、Linux amd64、Linux arm64、Linux armv7 与 fnOS 安装包。
+
+### 2.7.73
+
+- 优化文件管理框选性能：拖动开始时缓存文件行几何信息，按动画帧合并命中计算，并批量更新选择状态，减少大量文件下的布局抖动和卡顿。
+- 保持列表视图与网格视图的框选、全选、反选和状态栏联动一致，避免框选误触打开文件。
+- 同步官网、README、使用手册与 fnOS 清单到 `2.7.73`，重新构建 Windows 服务版、Windows 桌面版、Linux amd64、Linux arm64 与 fnOS 安装包。
 
 ### 2.7.72
 
