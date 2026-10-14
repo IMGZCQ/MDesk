@@ -3,9 +3,9 @@
 # MDesk Linux installer / uninstaller
 #
 # Usage:
-#   sudo bash install.sh
-#   sudo bash install.sh install
-#   sudo bash install.sh uninstall
+#   sudo bash install.sh              Detect installation, then install or manage it
+#   sudo bash install.sh install      Force install or upgrade
+#   sudo bash install.sh uninstall    Force uninstall
 #   sudo mdeskctl uninstall
 #
 # Optional environment variables:
@@ -91,15 +91,18 @@ usage() {
 MDesk Linux 安装脚本
 
 用法：
-  sudo bash install.sh              安装或升级 MDesk
-  sudo bash install.sh install      安装或升级 MDesk
-  sudo bash install.sh uninstall    卸载 MDesk
+  sudo bash install.sh              自动检测：未安装则安装，已安装则选择操作
+  sudo bash install.sh install      强制安装或升级 MDesk
+  sudo bash install.sh uninstall    强制卸载 MDesk
   sudo mdeskctl uninstall           卸载 MDesk（安装后）
   sudo bash install.sh --help       显示帮助
 
-安装向导会询问：
+未安装时，安装向导会询问：
   1. 服务端口，留空使用 19188
   2. 安装目录，留空使用 /opt/MDesk
+
+检测到已安装时，可选择重新安装/升级、卸载或取消。
+卸载向导会询问是否删除用户数据，默认保留。
 
 脚本会自动识别 amd64 / arm64 / armv7，测速并选择可用的 GitHub
 加速地址，下载 GitHub 最新 Release 二进制文件，然后注册 systemd
@@ -192,14 +195,6 @@ init_mirrors() {
   fi
 }
 
-systemd_quote() {
-  local value="$1"
-  value="${value//\\/\\\\}"
-  value="${value//\"/\\\"}"
-  value="${value//%/%%}"
-  printf '"%s"' "$value"
-}
-
 prompt_value() {
   local label="$1"
   local default_value="$2"
@@ -278,6 +273,7 @@ validate_install_directory() {
       die "不允许直接安装到系统目录：$value"
       ;;
   esac
+  [[ "$value" =~ ^/[A-Za-z0-9._/-]+$ ]] || die "安装目录只能包含字母、数字、点、下划线、斜杠和连字符：$value"
 }
 
 resolve_directory() {
@@ -555,9 +551,6 @@ write_state() {
 }
 
 write_service() {
-  local exec_start=""
-  exec_start="$(systemd_quote "$BINARY_PATH") -port $PORT -data $(systemd_quote "$DATA_DIR") -log $(systemd_quote "$LOG_FILE")"
-
   cat > "$UNIT_FILE" <<EOF
 [Unit]
 Description=MDesk service
@@ -568,8 +561,8 @@ Wants=network-online.target
 [Service]
 Type=simple
 User=root
-WorkingDirectory=$(systemd_quote "$INSTALL_DIR")
-ExecStart=$exec_start
+WorkingDirectory=$INSTALL_DIR
+ExecStart=$BINARY_PATH -port $PORT -data $DATA_DIR -log $LOG_FILE
 Restart=on-failure
 RestartSec=5
 TimeoutStopSec=20
@@ -753,7 +746,12 @@ install_mdesk() {
   info "正在注册并启动 systemd 服务。"
   systemctl daemon-reload
   systemctl enable "${SERVICE_NAME}.service" >/dev/null
-  systemctl restart "${SERVICE_NAME}.service"
+  if ! systemctl restart "${SERVICE_NAME}.service"; then
+    systemctl status "${SERVICE_NAME}.service" --no-pager || true
+    printf '\n%s\n' "systemd unit 内容：" >&2
+    cat "$UNIT_FILE" >&2 || true
+    die "启动失败，请检查上方 unit 内容和 systemd 日志。"
+  fi
   sleep 2
 
   if ! systemctl is-active --quiet "${SERVICE_NAME}.service"; then
@@ -847,12 +845,60 @@ uninstall_mdesk() {
   printf '\n'
 }
 
+detect_installation() {
+  load_state
+
+  [[ -e "$STATE_FILE" || -e "$UNIT_FILE" || -e "$BINARY_PATH" || -e "$COMMAND_FILE" ]]
+}
+
+choose_installed_action() {
+  load_state
+
+  local answer=""
+
+  printf '\n%s检测到 MDesk 已安装。%s\n\n' "$C_YELLOW" "$C_RESET"
+  printf '  安装目录：%s\n' "$INSTALL_DIR"
+  printf '  数据目录：%s\n' "$DATA_DIR"
+  printf '  服务名称：%s.service\n' "$SERVICE_NAME"
+  printf '\n'
+  printf '  1. 重新安装 / 升级\n'
+  printf '  2. 卸载\n'
+  printf '  0. 取消\n'
+  printf '\n'
+
+  while true; do
+    answer="$(prompt_value "请选择操作" "1")"
+    answer="$(trim "$answer" | tr '[:upper:]' '[:lower:]')"
+    case "$answer" in
+      1|install|reinstall|upgrade)
+        install_mdesk
+        return
+        ;;
+      2|uninstall|remove|u)
+        uninstall_mdesk
+        return
+        ;;
+      0|q|quit|cancel|exit)
+        info "已取消操作。"
+        return
+        ;;
+      *)
+        warn "请输入 1、2 或 0。"
+        ;;
+    esac
+  done
+}
+
 main() {
   resolve_script_path
 
-  local command="install"
+  local command=""
+  local -a original_args=("$@")
   case "${1:-}" in
-    ""|install)
+    "")
+      command="auto"
+      ;;
+    install|--install)
       command="install"
       shift || true
       ;;
@@ -873,10 +919,21 @@ main() {
     die "不支持的参数：$*"
   fi
 
-  need_root "$command"
+  if [[ "${#original_args[@]}" -eq 0 ]]; then
+    need_root
+  else
+    need_root "${original_args[@]}"
+  fi
   TMP_DIR="$(mktemp -d "${TMPDIR:-/tmp}/mdesk-install.XXXXXX")"
 
   case "$command" in
+    auto)
+      if detect_installation; then
+        choose_installed_action
+      else
+        install_mdesk
+      fi
+      ;;
     install) install_mdesk ;;
     uninstall) uninstall_mdesk ;;
   esac
