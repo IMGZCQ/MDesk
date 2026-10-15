@@ -64,7 +64,7 @@ M·Desk 一个高效轻便的服务器运维桌面系统；集结反代服务、
 | Linux amd64 | `MDesk-linux-amd64` | 适用于常见 x86_64 设备 |
 | Linux arm64 | `MDesk-linux-arm64` | 适用于 ARM64 设备 |
 | Linux armv7 | `MDesk-linux-armv7` | 适用于 32 位 ARMv7 设备 |
-| fnOS | `MDesk_2.7.91.fpk` | 支持 amd64 与 arm64 |
+| fnOS | `MDesk_2.7.92.fpk` | 支持 amd64 与 arm64 |
 
 ### Linux 命令行
 
@@ -210,11 +210,11 @@ docker run -d \
 
 Docker 管理需要挂载 Docker Socket。文件管理与终端默认只看到容器内文件，如需管理宿主机目录，请额外挂载对应卷。
 
-仓库 Actions secrets 需要配置 `DOCKERHUB_TOKEN`，建议使用 Docker Hub 的 Read & Write access token。Release 发布会推送 `latest`、版本号和完整标签；也可以通过 `workflow_dispatch` 手动补发指定版本，版本号填写 `2.7.91` 或 `v2.7.91` 均可。
+仓库 Actions secrets 需要配置 `DOCKERHUB_TOKEN`，建议使用 Docker Hub 的 Read & Write access token。Release 发布会推送 `latest`、版本号和完整标签；也可以通过 `workflow_dispatch` 手动补发指定版本，版本号填写 `2.7.92` 或 `v2.7.92` 均可。
 
 ### fnOS 安装包
 
-1. 从 [Releases](https://github.com/IMGZCQ/MDesk/releases) 下载最新的 `MDesk_2.7.91.fpk`。
+1. 从 [Releases](https://github.com/IMGZCQ/MDesk/releases) 下载最新的 `MDesk_2.7.92.fpk`。
 2. 在 fnOS 应用中心手动安装。
 3. 安装过程中可选择 HTTP 或 HTTPS，默认使用 HTTP 和 `19188` 端口。
 4. 安装完成后访问 `http://<设备地址>:19188/@admin`，首次访问时设置管理密码。
@@ -246,6 +246,14 @@ MDesk 使用手册.md      用户使用、部署与参数说明
 > M·Desk 的管理入口、终端与文件管理拥有较高权限。请使用强密码，优先通过 HTTPS、内网 ACL、VPN 或零信任网关访问，不要将管理入口直接暴露在不可信网络中。
 
 ## 更新日志
+
+### 2.7.92
+
+- 外链分享与静态网站统一公开预览窗口，图片、音视频和文本内容可直接在线查看。
+- 视频预览支持分段加载与进度拖动，音频提供波形和播放控制，大文本采用只读编辑器展示。
+- 分享目录与静态网站目录新增预览、下载入口，并完善目录浏览、默认首页与安全访问控制。
+- Linux 安装脚本统一为 `install.sh`，恢复国内镜像优先下载，失败后自动回退 GitHub Release 加速线路。
+- 补充分享预览、静态网站访问、路径安全和媒体响应头相关测试。
 
 ### 2.7.91
 
