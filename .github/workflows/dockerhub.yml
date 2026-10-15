@@ -7,7 +7,7 @@ on:
   workflow_dispatch:
     inputs:
       tag:
-        description: Release tag to publish, for example 2.7.86 or v2.7.86
+        description: Release tag to publish, for example 2.7.91 or v2.7.91
         required: true
         type: string
       publish_latest:

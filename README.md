@@ -42,12 +42,12 @@ M·Desk 一个高效轻便的服务器运维桌面系统；集结反代服务、
 | --- | --- |
 | **服务路由** | 统一管理多个服务入口，支持域名绑定与快速切换，各服务保持原有访问路径。 |
 | **fnOS 应用接入** | 扫描 fnOS 应用中心，将端口、Unix Socket 与 CGI 应用接入桌面，支持应用图标、版本、访问入口与安全路径校验。 |
-| **本地终端** | 浏览器中的多会话终端，支持后台保活、快捷命令与右键菜单操作。 |
-| **文件管理** | 在线浏览、编辑、上传下载、压缩解压；支持右键菜单、框选和直接分享。 |
-| **外链分享** | 为文件或目录生成分享链接，可设置访问密码、到期时间、启停状态。 |
-| **静态网站** | 选择一个本地目录即可发布为静态网站，支持默认主页、目录浏览与域名绑定。 |
+| **本地终端** | 浏览器中的多会话终端，支持后台保活、快捷命令与右键菜单操作；常见 POSIX 环境优先使用 Bash，同时保留 Zsh 等显式 shell 选择。 |
+| **文件管理** | 在线浏览、编辑、上传下载、压缩解压；支持右键菜单、框选、直接分享，以及图片、音视频和文本预览。目录链接、文件链接、失效链接与 Windows junction 会被明确标记。 |
+| **外链分享** | 为文件或目录生成分享链接，可设置访问密码、常用到期时间与启停状态；访问页面支持图片、音视频和只读文本预览。 |
+| **静态网站** | 选择一个本地目录即可发布为静态网站，支持默认主页、目录浏览与域名绑定；站点中的图片、音视频和文本资源可直接预览。 |
 | **组网隧道** | 支持 FRPC、EasyTier 与 Cloudflare Tunnel，并可分别管理多个实例；Cloudflare 提供命名隧道与快捷隧道两种模式。 |
-| **Docker 管理** | 管理容器、Compose 项目、本地镜像、镜像仓库、Docker 网络与镜像加速器；支持镜像更新检测、拉取新镜像、重建容器或 Compose 服务，并支持重启 Docker 服务。 |
+| **Docker 管理** | 管理容器、Compose 项目、本地镜像、镜像仓库、Docker 网络与镜像加速器；支持按镜像、Compose 服务或容器逐项检测更新、拉取新镜像并重建服务，也支持重启 Docker 服务。 |
 | **进程管理** | 查看真实进程列表、PID、用户、状态、CPU、内存、启动时间与可执行路径；支持搜索、端口反查、排序筛选、详情与安全结束进程。 |
 | **系统状态** | 集中展示系统与硬件信息、硬盘和 SMART 健康、网络接口与流量、CPU、内存、GPU 与资源趋势；后台统一采样记录 CPU、内存、GPU、网络和磁盘读写趋势，Linux 补充网卡链路速率读取并优化磁盘拓扑呈现。 |
 
@@ -64,7 +64,7 @@ M·Desk 一个高效轻便的服务器运维桌面系统；集结反代服务、
 | Linux amd64 | `MDesk-linux-amd64` | 适用于常见 x86_64 设备 |
 | Linux arm64 | `MDesk-linux-arm64` | 适用于 ARM64 设备 |
 | Linux armv7 | `MDesk-linux-armv7` | 适用于 32 位 ARMv7 设备 |
-| fnOS | `MDesk_2.7.86.fpk` | 支持 amd64 与 arm64 |
+| fnOS | `MDesk_2.7.91.fpk` | 支持 amd64 与 arm64 |
 
 ### Linux 命令行
 
@@ -81,6 +81,56 @@ chmod +x ./MDesk-linux-amd64
 5. 首次访问时设置管理密码。
 
 ARM64 设备请将文件名替换为 `MDesk-linux-arm64`，32 位 ARMv7 设备请使用 `MDesk-linux-armv7`。可通过启动参数调整访问协议、监听地址、数据目录、日志和组网配置，完整说明见 [MDesk 使用手册](./MDesk%20使用手册.md)。
+
+### Linux 一键安装（systemd）
+
+一键安装会自动识别 `amd64`、`arm64` 或 `armv7`。脚本会优先从 `https://fndesk.imcq.top/FPK/MDesk/` 下载对应二进制文件；如果该镜像不可用，再回退到 GitHub Release 的多个加速地址中选择可用且响应较快的线路。
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/IMGZCQ/MDesk/main/mdesk.sh | sudo bash
+```
+
+再次运行同一命令时，脚本会先检测系统是否已经安装 MDesk：
+
+- 未安装时，直接进入安装向导。
+- 已安装时，显示管理菜单，可选择重新安装/升级、卸载或取消。
+
+也可以使用显式命令强制安装或卸载：
+
+```bash
+sudo bash mdesk.sh install
+sudo bash mdesk.sh uninstall
+```
+
+安装向导会依次询问：
+
+1. 服务端口，直接回车使用默认值 `19188`
+2. 安装目录，直接回车使用默认值 `/opt/MDesk`
+
+安装目录建议使用不含空格和特殊字符的路径，例如 `/opt/MDesk`。
+
+安装完成后会注册并启动 `mdesk.service`，同时设置为开机自动启动。管理后台地址为：
+
+```text
+http://<设备地址>:<端口>/@admin
+```
+
+卸载命令：
+
+```bash
+sudo mdeskctl uninstall
+```
+
+也可以使用本地脚本卸载：`sudo bash mdesk.sh uninstall`。
+
+卸载向导会询问是否删除用户数据。默认保留数据；选择删除后，会清理安装目录中的数据。
+
+如需指定 GitHub 加速地址，可使用英文逗号分隔，并支持 `{url}` 占位符：
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/IMGZCQ/MDesk/main/mdesk.sh |
+  sudo env MDESK_GITHUB_PROXY='https://gh-proxy.com/,https://ghfast.top/' bash
+```
 
 ### 常用启动参数
 
@@ -121,14 +171,17 @@ GitHub Actions 会在发布 Release 时自动读取该 Release 的 `MDesk-linux-
 ```yaml
 services:
   MDesk:
-    container_name: MDesk                            # 容器名称
-    image: imgzcq/mdesk                              # Docker 镜像名称
-    ports: [19188:19188]                             # 访问端口:内部端口
+    container_name: MDesk
+    image: imgzcq/mdesk
+    network_mode: host
+    restart: always
+    command: ["-port", "19188"]
     volumes:
-      - ./data:/data                                 # 用户图标持久化目录
-      - /var/run/docker.sock:/var/run/docker.sock    # Docker 管理
-    restart: always                                  # 开机自启
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./data:/usr/local/bin/data
 ```
+
+> 提示：`command` 会覆盖镜像默认的 `-data /data` 参数，程序因此使用可执行文件所在目录下的 `data`，即 `/usr/local/bin/data`。请保持 `volumes` 挂载路径为 `./data:/usr/local/bin/data`，确保配置、账号与图标等数据持久化。
 
 启动：
 
@@ -157,11 +210,11 @@ docker run -d \
 
 Docker 管理需要挂载 Docker Socket。文件管理与终端默认只看到容器内文件，如需管理宿主机目录，请额外挂载对应卷。
 
-仓库 Actions secrets 需要配置 `DOCKERHUB_TOKEN`，建议使用 Docker Hub 的 Read & Write access token。Release 发布会推送 `latest`、版本号和完整标签；也可以通过 `workflow_dispatch` 手动补发指定版本，版本号填写 `2.7.86` 或 `v2.7.86` 均可。
+仓库 Actions secrets 需要配置 `DOCKERHUB_TOKEN`，建议使用 Docker Hub 的 Read & Write access token。Release 发布会推送 `latest`、版本号和完整标签；也可以通过 `workflow_dispatch` 手动补发指定版本，版本号填写 `2.7.91` 或 `v2.7.91` 均可。
 
 ### fnOS 安装包
 
-1. 从 [Releases](https://github.com/IMGZCQ/MDesk/releases) 下载最新的 `MDesk_2.7.86.fpk`。
+1. 从 [Releases](https://github.com/IMGZCQ/MDesk/releases) 下载最新的 `MDesk_2.7.91.fpk`。
 2. 在 fnOS 应用中心手动安装。
 3. 安装过程中可选择 HTTP 或 HTTPS，默认使用 HTTP 和 `19188` 端口。
 4. 安装完成后访问 `http://<设备地址>:19188/@admin`，首次访问时设置管理密码。
@@ -193,6 +246,17 @@ MDesk 使用手册.md      用户使用、部署与参数说明
 > M·Desk 的管理入口、终端与文件管理拥有较高权限。请使用强密码，优先通过 HTTPS、内网 ACL、VPN 或零信任网关访问，不要将管理入口直接暴露在不可信网络中。
 
 ## 更新日志
+
+### 2.7.91
+
+- 外链分享与静态网站新增内置预览，图片、音视频支持播放列表，文本可直接只读查看，预览同样受密码、有效期和目录边界保护。
+- 完善文件管理中的符号链接与 Windows junction 识别，正确标记目录链接、文件链接和失效链接，并加强静态网站访问的逃逸防护。
+- 优化分享设置体验，支持常用到期时间快捷选择，密码、到期状态和链接管理更加清晰。
+- 本地终端在基础 POSIX shell 环境下优先使用 Bash，避免只显示简单提示符，同时保留用户明确指定的 Zsh 等 shell。
+- 完善桌面任务栏与自动排列，支持应用固定、窗口切换、最小化恢复、任务栏右键操作和桌面布局持久化。
+- 新增 Linux 一键安装与 systemd 管理脚本，自动识别 `amd64`、`arm64` 与 `armv7`，支持安装、升级、卸载、服务自启以及下载加速回退。
+- 修正 Docker Compose 部署示例的持久化路径，避免自定义启动参数后数据写入未挂载目录；容器重建后配置、账号与图标可以保留。
+- 完善主题、目录选择、系统状态与 Docker 管理界面细节，并调整 Docker 更新检测的触发方式。
 
 ### 2.7.86
 
