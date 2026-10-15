@@ -591,7 +591,7 @@ download_installer_copy() {
   while IFS= read -r candidate; do
     [[ -n "$candidate" ]] || continue
     if download_file "$candidate" "$destination" >/dev/null 2>&1; then
-      if [[ "$(head -n 1 "$destination" 2>/dev/null || true)" == "#!/usr/bin/env bash" ]]; then
+      if head -n 1 "$destination" 2>/dev/null | grep -q '^#!/usr/bin/env bash$'; then
         return 0
       fi
     fi

@@ -87,7 +87,7 @@ ARM64 设备请将文件名替换为 `MDesk-linux-arm64`，32 位 ARMv7 设备�
 一键安装会自动识别 `amd64`、`arm64` 或 `armv7`。脚本会优先从 `https://fndesk.imcq.top/FPK/MDesk/` 下载对应二进制文件；如果该镜像不可用，再回退到 GitHub Release 的多个加速地址中选择可用且响应较快的线路。
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/IMGZCQ/MDesk/main/mdesk.sh | sudo bash
+curl -fsSL https://raw.githubusercontent.com/IMGZCQ/MDesk/main/install.sh | sudo bash
 ```
 
 再次运行同一命令时，脚本会先检测系统是否已经安装 MDesk：
@@ -98,8 +98,8 @@ curl -fsSL https://raw.githubusercontent.com/IMGZCQ/MDesk/main/mdesk.sh | sudo b
 也可以使用显式命令强制安装或卸载：
 
 ```bash
-sudo bash mdesk.sh install
-sudo bash mdesk.sh uninstall
+sudo bash install.sh install
+sudo bash install.sh uninstall
 ```
 
 安装向导会依次询问：
@@ -121,14 +121,14 @@ http://<设备地址>:<端口>/@admin
 sudo mdeskctl uninstall
 ```
 
-也可以使用本地脚本卸载：`sudo bash mdesk.sh uninstall`。
+也可以使用本地脚本卸载：`sudo bash install.sh uninstall`。
 
 卸载向导会询问是否删除用户数据。默认保留数据；选择删除后，会清理安装目录中的数据。
 
 如需指定 GitHub 加速地址，可使用英文逗号分隔，并支持 `{url}` 占位符：
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/IMGZCQ/MDesk/main/mdesk.sh |
+curl -fsSL https://raw.githubusercontent.com/IMGZCQ/MDesk/main/install.sh |
   sudo env MDESK_GITHUB_PROXY='https://gh-proxy.com/,https://ghfast.top/' bash
 ```
 

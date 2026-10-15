@@ -319,14 +319,14 @@ fnOS 用户可以在应用中心安装 `MDesk_2.7.91.fpk`，安装过程中可�
 脚本会自动识别 `amd64`、`arm64` 或 `armv7`，并优先从项目镜像地址下载对应二进制；镜像不可用时回退到 GitHub Release 加速线路。
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/IMGZCQ/MDesk/main/mdesk.sh | sudo bash
+curl -fsSL https://raw.githubusercontent.com/IMGZCQ/MDesk/main/install.sh | sudo bash
 ```
 
 脚本会询问服务端口与安装目录，默认分别为 `19188` 和 `/opt/MDesk`。已安装时再次运行会显示管理菜单，可选择重新安装/升级、卸载或取消。也可以使用：
 
 ```bash
-sudo bash mdesk.sh install
-sudo bash mdesk.sh uninstall
+sudo bash install.sh install
+sudo bash install.sh uninstall
 ```
 
 安装完成后会注册并启动 `mdesk.service`，同时设置为开机自启。卸载时默认保留用户数据，可以选择一并删除。
