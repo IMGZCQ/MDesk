@@ -23,6 +23,7 @@ SERVICE_NAME="mdesk"
 DEFAULT_PORT="19188"
 DEFAULT_INSTALL_DIR="/opt/MDesk"
 REPO="IMGZCQ/MDesk"
+PRIMARY_DOWNLOAD_BASE="https://fndesk.imcq.top/FPK/MDesk"
 STATE_DIR="/etc/mdesk"
 STATE_FILE="${STATE_DIR}/install.conf"
 UNIT_FILE="/etc/systemd/system/${SERVICE_NAME}.service"
@@ -504,14 +505,25 @@ download_latest_binary() {
   local destination="$1"
   local arch="$2"
   local asset=""
+  local primary_url=""
   local latest_url=""
   local tag=""
   local tagged_url=""
+  local -a primary_urls=()
   local -a latest_urls=()
   local -a tagged_urls=()
   local url=""
 
   asset="$(asset_name_for_arch "$arch")"
+  primary_url="${PRIMARY_DOWNLOAD_BASE}/${asset}"
+  primary_urls=("$primary_url")
+
+  info "优先从 MDesk 镜像下载：$primary_url"
+  if download_binary_with_candidates "$destination" "$arch" "${primary_urls[@]}"; then
+    return 0
+  fi
+
+  warn "MDesk 镜像下载失败，回退到 GitHub 加速地址。"
   latest_url="https://github.com/${REPO}/releases/latest/download/${asset}"
   while IFS= read -r url; do
     latest_urls+=("$url")
