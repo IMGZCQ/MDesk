@@ -7,6 +7,7 @@
 #   sudo bash install.sh install      Force install or upgrade
 #   sudo bash install.sh uninstall    Force uninstall
 #   sudo mdeskctl uninstall
+#   sudo mdeskctl status             Show background upgrade status
 #
 # Optional environment variables:
 #   MDESK_PORT              Default service port (default: 19188)
@@ -14,6 +15,7 @@
 #   MDESK_GITHUB_PROXY      Comma-separated GitHub accelerators. The default
 #                           list is replaced when this variable is set.
 #                           Each item can contain the {url} placeholder.
+#   MDESK_UPGRADE_WAIT_SECONDS  Foreground status wait timeout (default: 300)
 
 set -Eeuo pipefail
 umask 022
@@ -26,6 +28,10 @@ REPO="IMGZCQ/MDesk"
 PRIMARY_DOWNLOAD_BASE="https://fndesk.imcq.top/FPK/MDesk"
 STATE_DIR="/etc/mdesk"
 STATE_FILE="${STATE_DIR}/install.conf"
+UPGRADE_STATUS_FILE="${STATE_DIR}/upgrade.status"
+UPGRADE_LOG_FILE="/var/log/mdesk-upgrade.log"
+UPGRADE_WORKER_DIR="/run/mdesk-upgrade"
+UPGRADE_UNIT_PREFIX="mdesk-upgrade"
 UNIT_FILE="/etc/systemd/system/${SERVICE_NAME}.service"
 COMMAND_FILE="/usr/local/sbin/mdeskctl"
 DOWNLOAD_TIMEOUT="${MDESK_DOWNLOAD_TIMEOUT:-900}"
@@ -96,6 +102,7 @@ MDesk Linux 安装脚本
   sudo bash install.sh install      强制安装或升级 MDesk
   sudo bash install.sh uninstall    强制卸载 MDesk
   sudo mdeskctl uninstall           卸载 MDesk（安装后）
+  sudo mdeskctl status              查看后台升级状态
   sudo bash install.sh --help       显示帮助
 
 未安装时，安装向导会询问：
@@ -114,6 +121,7 @@ MDesk Linux 安装脚本
   MDESK_INSTALL_DIR      指定默认安装目录
   MDESK_GITHUB_PROXY     逗号分隔的加速地址，支持 {url} 占位符
   MDESK_DOWNLOAD_TIMEOUT 下载超时秒数，默认 900
+  MDESK_UPGRADE_WAIT_SECONDS 普通终端等待升级完成的秒数，默认 300
 EOF
 }
 
@@ -159,7 +167,7 @@ require_command() {
 
 require_base_commands() {
   local name
-  for name in awk cat cut grep head install mkdir mktemp mv od rm rmdir sed sort tr uname; do
+  for name in awk cat cp cut grep head install mkdir mktemp mv od rm rmdir sed sort tr uname; do
     require_command "$name"
   done
   if ! command -v curl >/dev/null 2>&1 && ! command -v wget >/dev/null 2>&1; then
@@ -589,6 +597,380 @@ EOF
   chmod 0644 "$UNIT_FILE"
 }
 
+upgrade_timestamp() {
+  date -u +%Y-%m-%dT%H:%M:%SZ 2>/dev/null || date
+}
+
+upgrade_status_sanitize() {
+  printf '%s' "$1" | tr '\r\n' '  '
+}
+
+write_upgrade_status() {
+  local state="$1"
+  local message="${2:-}"
+  local finished_at="${3-}"
+  local action="${ACTION:-upgrade}"
+  local target_version="${TARGET_VERSION:-latest}"
+  local started_at="${STARTED_AT:-}"
+  local temporary="${UPGRADE_STATUS_FILE}.tmp.$$"
+
+  mkdir -p -- "$STATE_DIR" || return 1
+  {
+    printf 'STATE=%s\n' "$(upgrade_status_sanitize "$state")"
+    printf 'ACTION=%s\n' "$(upgrade_status_sanitize "$action")"
+    printf 'TARGET_VERSION=%s\n' "$(upgrade_status_sanitize "$target_version")"
+    printf 'STARTED_AT=%s\n' "$(upgrade_status_sanitize "$started_at")"
+    printf 'FINISHED_AT=%s\n' "$(upgrade_status_sanitize "$finished_at")"
+    printf 'MESSAGE=%s\n' "$(upgrade_status_sanitize "$message")"
+    printf 'LOG_FILE=%s\n' "$(upgrade_status_sanitize "${UPGRADE_LOG_FILE:-}")"
+    printf 'INSTALL_DIR=%s\n' "$(upgrade_status_sanitize "${INSTALL_DIR:-}")"
+    printf 'PORT=%s\n' "$(upgrade_status_sanitize "${PORT:-}")"
+    printf 'BINARY_PATH=%s\n' "$(upgrade_status_sanitize "${BINARY_PATH:-}")"
+  } > "$temporary" || return 1
+  chmod 0644 "$temporary" 2>/dev/null || true
+  mv -f -- "$temporary" "$UPGRADE_STATUS_FILE"
+}
+
+cmd_status() {
+  local state=""
+  local action=""
+  local target_version=""
+  local started_at=""
+  local finished_at=""
+  local message=""
+  local log_file=""
+  local line=""
+  local key=""
+  local value=""
+
+  if [[ ! -r "$UPGRADE_STATUS_FILE" ]]; then
+    info "当前没有升级状态记录。"
+    return 0
+  fi
+
+  while IFS= read -r line || [[ -n "$line" ]]; do
+    [[ -n "$line" ]] || continue
+    key="${line%%=*}"
+    [[ "$key" != "$line" ]] || continue
+    value="${line#*=}"
+    case "$key" in
+      STATE) state="$value" ;;
+      ACTION) action="$value" ;;
+      TARGET_VERSION) target_version="$value" ;;
+      STARTED_AT) started_at="$value" ;;
+      FINISHED_AT) finished_at="$value" ;;
+      MESSAGE) message="$value" ;;
+      LOG_FILE) log_file="$value" ;;
+    esac
+  done < "$UPGRADE_STATUS_FILE"
+
+  if [[ -z "$state" ]]; then
+    warn "升级状态文件格式无效：$UPGRADE_STATUS_FILE"
+    return 1
+  fi
+
+  printf '\n'
+  case "$state" in
+    running)
+      info "升级任务正在后台运行。"
+      ;;
+    success)
+      success "MDesk 升级已完成。"
+      ;;
+    failed)
+      warn "MDesk 升级失败。"
+      ;;
+    *)
+      info "升级状态：$state"
+      ;;
+  esac
+
+  [[ -n "$action" ]] && printf '  操作：%s\n' "$action"
+  [[ -n "$target_version" ]] && printf '  目标版本：%s\n' "$target_version"
+  [[ -n "$started_at" ]] && printf '  开始时间：%s\n' "$started_at"
+  [[ -n "$finished_at" ]] && printf '  结束时间：%s\n' "$finished_at"
+  [[ -n "$message" ]] && printf '  说明：%s\n' "$message"
+  [[ -n "$log_file" ]] && printf '  日志：%s\n' "$log_file"
+  printf '\n'
+
+  [[ "$state" != "failed" ]]
+}
+
+write_upgrade_worker() {
+  local destination="$1"
+
+  {
+    printf '#!/usr/bin/env bash\n'
+    printf 'set -Eeuo pipefail\n'
+    printf 'C_RESET=%q\n' ""
+    printf 'C_BLUE=%q\n' ""
+    printf 'C_GREEN=%q\n' ""
+    printf 'C_YELLOW=%q\n' ""
+    printf 'C_RED=%q\n' ""
+    printf 'APP_NAME=%q\n' "$APP_NAME"
+    printf 'SERVICE_NAME=%q\n' "$SERVICE_NAME"
+    printf 'REPO=%q\n' "$REPO"
+    printf 'STATE_DIR=%q\n' "$STATE_DIR"
+    printf 'STATE_FILE=%q\n' "$STATE_FILE"
+    printf 'UPGRADE_STATUS_FILE=%q\n' "$UPGRADE_STATUS_FILE"
+    printf 'UPGRADE_LOG_FILE=%q\n' "$UPGRADE_LOG_FILE"
+    printf 'UNIT_FILE=%q\n' "$UNIT_FILE"
+    printf 'COMMAND_FILE=%q\n' "$COMMAND_FILE"
+    printf 'UPGRADE_STATUS_WRITTEN=0\n'
+    printf 'UPGRADE_BINARY_REPLACED=0\n'
+    printf 'UPGRADE_BACKUP_PATH=""\n'
+    declare -f \
+      upgrade_timestamp \
+      upgrade_status_sanitize \
+      write_upgrade_status \
+      info \
+      success \
+      warn \
+      die \
+      require_command \
+      write_state \
+      write_service \
+      upgrade_worker_exit \
+      run_upgrade_worker
+    printf 'run_upgrade_worker "$1"\n'
+  } > "$destination"
+  chmod 0700 "$destination"
+}
+
+upgrade_worker_exit() {
+  local rc="${1:-0}"
+
+  if [[ "${UPGRADE_STATUS_WRITTEN:-0}" -eq 1 ]]; then
+    exit "$rc"
+  fi
+
+  if [[ "${UPGRADE_BINARY_REPLACED:-0}" -eq 1 && -n "${UPGRADE_BACKUP_PATH:-}" && -f "${UPGRADE_BACKUP_PATH:-}" ]]; then
+    mv -f -- "$UPGRADE_BACKUP_PATH" "${BINARY_PATH:-}" 2>/dev/null || true
+    systemctl daemon-reload >/dev/null 2>&1 || true
+    if [[ "${SERVICE_WAS_ACTIVE:-no}" == "yes" ]]; then
+      systemctl restart "${SERVICE_NAME}.service" >/dev/null 2>&1 || true
+    fi
+  elif [[ "${ACTION:-upgrade}" == "install" && "${UPGRADE_BINARY_REPLACED:-0}" -eq 1 ]]; then
+    systemctl disable --now "${SERVICE_NAME}.service" >/dev/null 2>&1 || true
+  elif [[ "${SERVICE_WAS_ACTIVE:-no}" == "yes" ]]; then
+    systemctl start "${SERVICE_NAME}.service" >/dev/null 2>&1 || true
+  fi
+
+  [[ "$rc" -ne 0 ]] || rc=1
+  write_upgrade_status "failed" \
+    "升级失败，已尝试恢复旧版本。请查看日志：${UPGRADE_LOG_FILE:-/var/log/mdesk-upgrade.log}" \
+    "$(upgrade_timestamp)" || true
+  exit "$rc"
+}
+
+run_upgrade_worker() {
+  local config_file="${1:-}"
+  local active="no"
+  local healthy="no"
+  local i=0
+
+  trap 'upgrade_worker_exit "$?"' EXIT
+
+  if [[ -z "$config_file" || ! -r "$config_file" ]]; then
+    printf '[错误] 后台升级配置不存在：%s\n' "$config_file" >&2
+    exit 1
+  fi
+
+  # The config file is generated by the installer with shell-safe values.
+  # shellcheck disable=SC1090
+  . "$config_file"
+
+  mkdir -p -- /var/log 2>/dev/null || true
+  exec >> "${UPGRADE_LOG_FILE:-/var/log/mdesk-upgrade.log}" 2>&1
+
+  STARTED_AT="${STARTED_AT:-$(upgrade_timestamp)}"
+  TARGET_VERSION="${TARGET_VERSION:-latest}"
+  ACTION="${ACTION:-upgrade}"
+  BINARY_PATH="${BINARY_PATH:-${INSTALL_DIR}/${APP_NAME}}"
+
+  info "后台升级任务开始。"
+  info "目标版本：$TARGET_VERSION"
+  info "安装目录：$INSTALL_DIR"
+
+  write_upgrade_status "running" "后台升级任务正在执行。" "" || true
+
+  if [[ ! -f "$STAGED_BINARY" || ! -s "$STAGED_BINARY" ]]; then
+    die "待安装的新程序不存在或为空：$STAGED_BINARY"
+  fi
+
+  if [[ "$SERVICE_WAS_ACTIVE" == "yes" ]]; then
+    info "正在停止 MDesk 服务。"
+    if ! systemctl stop "${SERVICE_NAME}.service"; then
+      die "停止 MDesk 服务失败。"
+    fi
+  fi
+
+  if [[ -f "$BINARY_PATH" ]]; then
+    UPGRADE_BACKUP_PATH="${BINARY_PATH}.previous"
+    info "正在备份当前程序到 $UPGRADE_BACKUP_PATH。"
+    if ! cp -p -- "$BINARY_PATH" "$UPGRADE_BACKUP_PATH"; then
+      die "备份当前程序失败。"
+    fi
+  fi
+
+  if ! mv -f -- "$STAGED_BINARY" "$BINARY_PATH"; then
+    die "替换 MDesk 程序失败。"
+  fi
+  UPGRADE_BINARY_REPLACED=1
+  chmod 0755 "$BINARY_PATH" || die "设置程序执行权限失败。"
+
+  info "正在写入安装配置和 systemd 服务。"
+  write_state || die "写入安装配置失败。"
+  write_service || die "写入 systemd 服务失败。"
+
+  if ! systemctl daemon-reload; then
+    die "重新加载 systemd 配置失败。"
+  fi
+  if ! systemctl enable "${SERVICE_NAME}.service" >/dev/null; then
+    die "启用 MDesk 服务失败。"
+  fi
+  if ! systemctl restart "${SERVICE_NAME}.service"; then
+    systemctl status "${SERVICE_NAME}.service" --no-pager || true
+    die "重启 MDesk 服务失败。"
+  fi
+
+  for ((i = 0; i < 60; i++)); do
+    if systemctl is-active --quiet "${SERVICE_NAME}.service"; then
+      active="yes"
+      break
+    fi
+    sleep 1
+  done
+  if [[ "$active" != "yes" ]]; then
+    systemctl status "${SERVICE_NAME}.service" --no-pager || true
+    die "MDesk 服务启动超时。"
+  fi
+
+  if command -v curl >/dev/null 2>&1; then
+    for ((i = 0; i < 30; i++)); do
+      if curl -fsS --connect-timeout 2 --max-time 3 \
+        "http://127.0.0.1:${PORT}/@admin/api/session" >/dev/null 2>&1; then
+        healthy="yes"
+        break
+      fi
+      sleep 1
+    done
+    if [[ "$healthy" != "yes" ]]; then
+      systemctl status "${SERVICE_NAME}.service" --no-pager || true
+      die "MDesk 服务启动后健康检查失败。"
+    fi
+  else
+    sleep 2
+  fi
+
+  if ! write_upgrade_status \
+    "success" \
+    "MDesk 升级成功，服务已恢复运行。" \
+    "$(upgrade_timestamp)"; then
+    die "写入升级成功状态失败。"
+  fi
+  UPGRADE_STATUS_WRITTEN=1
+
+  rm -f -- "${UPGRADE_BACKUP_PATH:-}" 2>/dev/null || true
+  success "MDesk 升级完成。"
+}
+
+launch_upgrade_worker() {
+  local service_was_active="$1"
+  local stamp=""
+  local unit=""
+  local worker=""
+  local config=""
+  local -a run_args=()
+
+  stamp="$(date -u +%Y%m%d%H%M%S)-$$"
+  unit="${UPGRADE_UNIT_PREFIX}-${stamp}"
+  worker="${UPGRADE_WORKER_DIR}/${stamp}.sh"
+  config="${UPGRADE_WORKER_DIR}/${stamp}.conf"
+
+  mkdir -p -- "$UPGRADE_WORKER_DIR" || die "无法创建后台升级目录：$UPGRADE_WORKER_DIR"
+  chmod 0700 "$UPGRADE_WORKER_DIR" 2>/dev/null || true
+
+  STARTED_AT="${STARTED_AT:-$(upgrade_timestamp)}"
+  TARGET_VERSION="${TARGET_VERSION:-latest}"
+  ACTION="${ACTION:-upgrade}"
+
+  {
+    printf 'ACTION=%q\n' "$ACTION"
+    printf 'TARGET_VERSION=%q\n' "$TARGET_VERSION"
+    printf 'STARTED_AT=%q\n' "$STARTED_AT"
+    printf 'INSTALL_DIR=%q\n' "$INSTALL_DIR"
+    printf 'DATA_DIR=%q\n' "$DATA_DIR"
+    printf 'LOG_DIR=%q\n' "$LOG_DIR"
+    printf 'LOG_FILE=%q\n' "$LOG_FILE"
+    printf 'PORT=%q\n' "$PORT"
+    printf 'BINARY_PATH=%q\n' "$BINARY_PATH"
+    printf 'STAGED_BINARY=%q\n' "${INSTALL_DIR}/.MDesk.new"
+    printf 'SERVICE_WAS_ACTIVE=%q\n' "$service_was_active"
+  } > "$config"
+  chmod 0600 "$config"
+
+  write_upgrade_worker "$worker"
+  write_upgrade_status "running" "升级任务已转入后台执行。" "" || true
+
+  if ! command -v systemd-run >/dev/null 2>&1; then
+    write_upgrade_status "failed" "系统缺少 systemd-run，无法启动后台升级。" "$(upgrade_timestamp)" || true
+    die "系统缺少 systemd-run，无法在停服后继续执行升级。"
+  fi
+
+  run_args=(
+    "--unit=$unit"
+    "--collect"
+    "--no-block"
+    "--property=Type=oneshot"
+    "--property=TimeoutStartSec=600"
+    "--property=WorkingDirectory=$INSTALL_DIR"
+    /bin/bash "$worker" "$config"
+  )
+  if ! systemd-run "${run_args[@]}"; then
+    systemctl reset-failed "$unit" >/dev/null 2>&1 || true
+    write_upgrade_status "failed" "无法启动后台升级任务。" "$(upgrade_timestamp)" || true
+    die "无法启动后台升级任务，请检查 systemd 日志。"
+  fi
+}
+
+is_running_inside_mdesk_service() {
+  [[ -r /proc/self/cgroup ]] || return 1
+  grep -Eq "(^|/)${SERVICE_NAME}\.service(/|$)" /proc/self/cgroup 2>/dev/null
+}
+
+upgrade_state() {
+  [[ -r "$UPGRADE_STATUS_FILE" ]] || return 1
+  awk -F= '$1 == "STATE" { sub(/^STATE=/, ""); print; exit }' "$UPGRADE_STATUS_FILE"
+}
+
+wait_for_upgrade_completion() {
+  local remaining="${MDESK_UPGRADE_WAIT_SECONDS:-300}"
+  local state=""
+
+  case "$remaining" in
+    ''|*[!0-9]*) remaining=300 ;;
+  esac
+  ((remaining > 0)) || remaining=300
+
+  info "升级已在后台运行，最多等待 ${remaining} 秒。"
+  while ((remaining > 0)); do
+    state="$(upgrade_state 2>/dev/null || true)"
+    case "$state" in
+      success|failed)
+        cmd_status
+        return
+        ;;
+    esac
+    sleep 2
+    remaining=$((remaining - 2))
+  done
+
+  warn "等待超时，升级任务可能仍在后台执行。"
+  cmd_status || true
+  return 1
+}
+
 download_installer_copy() {
   local destination="$1"
   local source_url="https://raw.githubusercontent.com/${REPO}/main/install.sh"
@@ -700,6 +1082,7 @@ install_mdesk() {
   local resolved=""
   local temporary_binary=""
   local service_was_active="no"
+  local running_inside_mdesk="no"
 
   printf '\n%sMDesk Linux 安装向导%s\n\n' "$C_BLUE" "$C_RESET"
 
@@ -743,33 +1126,39 @@ install_mdesk() {
 
   if systemctl is-active --quiet "${SERVICE_NAME}.service" 2>/dev/null; then
     service_was_active="yes"
-    info "正在停止旧服务。"
-    systemctl stop "${SERVICE_NAME}.service" || true
   fi
+
+  ACTION="install"
+  if [[ -f "$BINARY_PATH" ]]; then
+    ACTION="upgrade"
+  fi
+  TARGET_VERSION="latest"
 
   install -m 0755 "$temporary_binary" "${INSTALL_DIR}/.MDesk.new"
-  mv -f -- "${INSTALL_DIR}/.MDesk.new" "$BINARY_PATH"
-  chmod 0755 "$BINARY_PATH"
-
-  write_state
-  write_service
   install_command_helper
 
-  info "正在注册并启动 systemd 服务。"
-  systemctl daemon-reload
-  systemctl enable "${SERVICE_NAME}.service" >/dev/null
-  if ! systemctl restart "${SERVICE_NAME}.service"; then
-    systemctl status "${SERVICE_NAME}.service" --no-pager || true
-    printf '\n%s\n' "systemd unit 内容：" >&2
-    cat "$UNIT_FILE" >&2 || true
-    die "启动失败，请检查上方 unit 内容和 systemd 日志。"
+  if is_running_inside_mdesk_service; then
+    running_inside_mdesk="yes"
   fi
-  sleep 2
 
-  if ! systemctl is-active --quiet "${SERVICE_NAME}.service"; then
-    systemctl status "${SERVICE_NAME}.service" --no-pager || true
-    die "服务启动失败，请使用 journalctl -u ${SERVICE_NAME}.service -n 100 查看日志。"
+  printf '\n'
+  info "新版本已下载并暂存，正在转入后台完成停服、替换和重启。"
+  if [[ "$running_inside_mdesk" == "yes" ]]; then
+    printf '  MDesk 服务即将短暂停止，本终端可能断开。\n'
+    printf '  重连后执行：sudo %s status\n' "$COMMAND_FILE"
+    printf '  升级日志：%s\n' "$UPGRADE_LOG_FILE"
   fi
+
+  launch_upgrade_worker "$service_was_active"
+
+  if [[ "$running_inside_mdesk" == "yes" ]]; then
+    success "升级任务已在后台启动。"
+    printf '  管理地址：升级完成后访问 http://<服务器IP>:%s/@admin\n' "$PORT"
+    printf '\n'
+    return 0
+  fi
+
+  wait_for_upgrade_completion
 
   if [[ "$service_was_active" == "yes" ]]; then
     success "MDesk 已升级并重新启动。"
@@ -845,7 +1234,7 @@ uninstall_mdesk() {
     success "MDesk 已卸载，用户数据已保留。"
   fi
 
-  rm -f -- "$STATE_FILE"
+  rm -f -- "$UPGRADE_STATUS_FILE" "$STATE_FILE"
   rmdir "$STATE_DIR" 2>/dev/null || true
   rm -f -- "$COMMAND_FILE"
 
@@ -922,8 +1311,12 @@ main() {
       usage
       return 0
       ;;
+    status|upgrade-status)
+      command="status"
+      shift || true
+      ;;
     *)
-      die "未知命令：$1（可用命令：install、uninstall）"
+      die "未知命令：$1（可用命令：install、uninstall、status）"
       ;;
   esac
 
@@ -948,6 +1341,7 @@ main() {
       ;;
     install) install_mdesk ;;
     uninstall) uninstall_mdesk ;;
+    status) cmd_status ;;
   esac
 }
 
