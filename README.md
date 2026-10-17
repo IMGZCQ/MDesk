@@ -24,6 +24,11 @@
   <img src="https://raw.githubusercontent.com/IMGZCQ/MDesk/main/desktop-overview.webp" alt="M·Desk 桌面系统总览" width="52%">
 </p>
 
+<p align="center">
+  <img src="./desktop-overview-light.webp" alt="M·Desk 浅色主题桌面界面" width="49%">
+  <img src="./desktop-overview-dark.webp" alt="M·Desk 深色主题桌面界面" width="49%">
+</p>
+
 M·Desk 一个高效轻便的服务器运维桌面系统；集结反代服务、本地终端、组网穿透、外链分享、静态网站、文件和 Docker 管理等服务；所有服务都基于单一端口实现，享受极致的管理体验！
 
 ## 快速入口

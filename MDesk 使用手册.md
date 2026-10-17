@@ -50,6 +50,10 @@ M·Desk 是一套服务器运维桌面系统，把常用的服务入口、运维
 
 ![M·Desk 桌面系统总览](https://raw.githubusercontent.com/IMGZCQ/MDesk/main/desktop-overview.webp)
 
+![M·Desk 浅色主题桌面界面](./desktop-overview-light.webp)
+
+![M·Desk 深色主题桌面界面](./desktop-overview-dark.webp)
+
 M·Desk 将侧栏、应用区与任务栏组织在同一张桌面中：
 
 - **侧栏**：集中放置服务路由、fnOS 应用接入、本地终端、文件管理、外链分享、静态站点、组网隧道、Docker 管理、进程管理、系统状态以及账户操作。
