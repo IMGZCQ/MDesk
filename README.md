@@ -24,6 +24,11 @@
   <img src="https://raw.githubusercontent.com/IMGZCQ/MDesk/main/desktop-overview.webp" alt="M·Desk 桌面系统总览" width="52%">
 </p>
 
+<p align="center">
+  <img src="./desktop-overview-light.webp" alt="M·Desk 浅色主题桌面界面" width="49%">
+  <img src="./desktop-overview-dark.webp" alt="M·Desk 深色主题桌面界面" width="49%">
+</p>
+
 M·Desk 一个高效轻便的服务器运维桌面系统；集结反代服务、本地终端、组网穿透、外链分享、静态网站、文件和 Docker 管理等服务；所有服务都基于单一端口实现，享受极致的管理体验！
 
 ## 快速入口
@@ -50,6 +55,7 @@ M·Desk 一个高效轻便的服务器运维桌面系统；集结反代服务、
 | **Docker 管理** | 管理容器、Compose 项目、本地镜像、镜像仓库、Docker 网络与镜像加速器；支持按镜像、Compose 服务或容器逐项检测更新、拉取新镜像并重建服务，也支持重启 Docker 服务。 |
 | **进程管理** | 查看真实进程列表、PID、用户、状态、CPU、内存、启动时间与可执行路径；支持搜索、端口反查、排序筛选、详情与安全结束进程。 |
 | **系统状态** | 集中展示系统与硬件信息、硬盘和 SMART 健康、网络接口与流量、CPU、内存、GPU 与资源趋势；后台统一采样记录 CPU、内存、GPU、网络和磁盘读写趋势。系统设置支持修改设备名称，并针对不同平台提供权限、格式校验与重启提示；Linux 补充网卡链路速率读取并优化磁盘拓扑呈现，系统端口图标支持 IPv4/IPv6、HTTPS/HTTP 回退与独立缓存。 |
+| **系统设置与个性化** | 提供四套应用图标套装，可切换桌面图标单击或双击打开；支持指定独立壁纸目录，自动检测目录变化并刷新缩略图。窗口焦点恢复、任务栏显示和后台刷新策略也会随桌面操作状态平滑调整。 |
 
 ---
 
@@ -64,7 +70,7 @@ M·Desk 一个高效轻便的服务器运维桌面系统；集结反代服务、
 | Linux amd64 | `MDesk-linux-amd64` | 适用于常见 x86_64 设备 |
 | Linux arm64 | `MDesk-linux-arm64` | 适用于 ARM64 设备 |
 | Linux armv7 | `MDesk-linux-armv7` | 适用于 32 位 ARMv7 设备 |
-| fnOS | `MDesk_2.7.100.fpk` | 支持 amd64 与 arm64 |
+| fnOS | `MDesk_2.7.103.fpk` | 支持 amd64 与 arm64 |
 
 ### Linux 命令行
 
@@ -212,11 +218,11 @@ docker run -d \
 
 Docker 管理需要挂载 Docker Socket。文件管理与终端默认只看到容器内文件，如需管理宿主机目录，请额外挂载对应卷。
 
-仓库 Actions secrets 需要配置 `DOCKERHUB_TOKEN`，建议使用 Docker Hub 的 Read & Write access token。Release 发布会推送 `latest`、版本号和完整标签；也可以通过 `workflow_dispatch` 手动补发指定版本，版本号填写 `2.7.100` 或 `v2.7.100` 均可。
+仓库 Actions secrets 需要配置 `DOCKERHUB_TOKEN`，建议使用 Docker Hub 的 Read & Write access token。Release 发布会推送 `latest`、版本号和完整标签；也可以通过 `workflow_dispatch` 手动补发指定版本，版本号填写 `2.7.103` 或 `v2.7.103` 均可。
 
 ### fnOS 安装包
 
-1. 从 [Releases](https://github.com/IMGZCQ/MDesk/releases) 下载最新的 `MDesk_2.7.100.fpk`。
+1. 从 [Releases](https://github.com/IMGZCQ/MDesk/releases) 下载最新的 `MDesk_2.7.103.fpk`。
 2. 在 fnOS 应用中心手动安装。
 3. 安装过程中可选择 HTTP 或 HTTPS，默认使用 HTTP 和 `19188` 端口。
 4. 安装完成后访问 `http://<设备地址>:19188/@admin`，首次访问时设置管理密码。
@@ -248,6 +254,17 @@ MDesk 使用手册.md      用户使用、部署与参数说明
 > M·Desk 的管理入口、终端与文件管理拥有较高权限。请使用强密码，优先通过 HTTPS、内网 ACL、VPN 或零信任网关访问，不要将管理入口直接暴露在不可信网络中。
 
 ## 更新日志
+
+### 2.7.103
+
+- 系统设置新增四套应用图标套装，并支持切换桌面图标单击或双击打开。
+- 用户壁纸支持指定独立目录，自动检测目录变化，并优化缩略图缓存与扫描刷新。
+- 文件管理器支持表头排序并记忆排序偏好，收藏夹保存流程更加稳定。
+- 视频播放支持长按临时 2x 播放，同时优化播放器控制栏显示。
+- 完善 Docker Compose 管理，支持按 YAML 重构项目、删除项目配置，并保护托管项目。
+- 外部链接无法在应用内打开时，提供更清晰的提示、重试和浏览器打开入口。
+- 优化窗口焦点恢复、任务栏显示，以及任务中心和隧道页面的后台刷新策略。
+- 修复旧版提示缓存覆盖新版默认提示的问题。
 
 ### 2.7.100
 
