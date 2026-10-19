@@ -198,13 +198,17 @@ services:
   MDesk:
     container_name: MDesk
     image: imgzcq/mdesk
-    network_mode: host
-    restart: always
-    command: ["-port", "19188"]
+    network_mode: host                              # 网络类型
+    restart: always                                 # 自动启动
+    command: ["-port", "19188"]                     # 自定义端口
     volumes:
-      - /var/run/docker.sock:/var/run/docker.sock
-      - ./data:/usr/local/bin/data
+      - /var/run/docker.sock:/var/run/docker.sock   # Docker管理
+      - ./data:/usr/local/bin/data                  # 应用数据持久化
+      #- /var/apps:/var/apps                        # 接入飞牛应用
+      #- /vol1:/vol1                                # 接入飞牛应用
 ```
+
+> 提示：飞牛应用相关挂载默认注释，非飞牛系统保持注释即可。在 fnOS 中使用应用接入时，取消这两行注释，并将 `/vol1` 调整为应用实际所在的存储卷；存在多个存储卷时分别挂载对应的 `/volX`。
 
 > 提示：`command` 会覆盖镜像默认的 `-data /data` 参数，程序因此使用可执行文件所在目录下的 `data`，即 `/usr/local/bin/data`。请保持 `volumes` 挂载路径为 `./data:/usr/local/bin/data`，确保配置、账号与图标等数据持久化。
 
