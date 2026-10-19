@@ -1,6 +1,6 @@
 # M·Desk 使用手册
 
-> **当前版本：** `2.7.106`
+> **当前版本：** `2.7.107`
 >
 > M·Desk 一个高效轻便的服务器运维桌面系统；集结反代服务、本地终端、组网穿透、外链分享、静态网站、文件和 Docker 管理等服务；所有服务都基于单一端口实现，享受极致的管理体验！
 
@@ -335,13 +335,13 @@ ARM64 设备请使用 `MDesk-linux-arm64`，32 位 ARMv7 设备请使用 `MDesk-
 http://<设备地址>:19188/@admin
 ```
 
-fnOS 用户可以在应用中心安装 `MDesk_2.7.106.fpk`，安装过程中可选择 HTTP 或 HTTPS，并调整监听端口。安装完成后，fnOS 应用接入会自动扫描应用中心并呈现可用应用。
+fnOS 用户可以在应用中心安装 `MDesk_2.7.107.fpk`，安装过程中可选择 HTTP 或 HTTPS，并调整监听端口。安装完成后，fnOS 应用接入会自动扫描应用中心并呈现可用应用。
 
 如果后端尚未配置或暂时不可用，浏览器访问管理入口时会看到明确的状态提示页；接口请求仍返回 JSON 错误，便于脚本或集成端识别问题。
 
 #### Linux 一键安装（systemd / OpenRC / SysV）
 
-脚本会自动识别 `amd64`、`arm64` 或 `armv7`，并优先从项目镜像地址下载对应二进制；镜像不可用时回退到 GitHub Release 加速线路。安装时会按 systemd、OpenRC、SysV 的顺序自动探测服务管理器；如果系统没有这些服务管理器，则启动独立后台进程，并在 cron 可用时注册开机启动。
+脚本会自动识别 `amd64`、`arm64` 或 `armv7`，并优先从项目镜像地址下载对应二进制；镜像不可用时回退到 GitHub Release 加速线路。安装时会优先使用 systemd，并兼容 OpenRC、SysV；所选服务管理器注册、启动或健康检查失败时，会自动降级为独立后台进程。后台模式会在 cron 可用时注册开机启动。
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/IMGZCQ/MDesk/main/install.sh | sudo bash
@@ -356,7 +356,15 @@ sudo bash install.sh uninstall
 
 安装完成后会按当前环境注册并启动服务，并在服务管理器或 cron 可用时设置为开机自启。卸载时默认保留用户数据，可以选择一并删除。
 
-升级或重新安装会在后台执行，服务启动后自动进行健康检查；失败时回滚到升级前版本，并写入 `/var/log/mdesk-upgrade.log`。可使用 `sudo mdeskctl status` 查看服务与最近一次升级状态，`MDESK_UPGRADE_WAIT_SECONDS` 用于调整等待上限，默认 `300` 秒。系统同时没有服务管理器和 cron 时，后台进程仍可使用，但系统重启后需要执行 `sudo mdeskctl start`。
+升级或重新安装会交给独立后台任务执行，即使 MDesk 内置终端、SSH 会话或发起命令的终端断开，更新仍会继续。任务会下载并校验新二进制、重启服务并执行 HTTP 健康检查；失败时会恢复旧二进制和配置，如果原服务管理器仍无法启动，则会自动用后台进程恢复旧版本。可使用以下命令发起或查看更新：
+
+```bash
+sudo bash install.sh update
+sudo mdeskctl update
+sudo mdeskctl status
+```
+
+更新日志和最近状态分别保存在 `/etc/mdesk/update.log` 与 `/etc/mdesk/update.status`。系统同时没有服务管理器和 cron 时，后台进程仍可使用，但系统重启后需要执行 `sudo mdeskctl start`。
 
 #### Docker Compose 部署
 
@@ -498,6 +506,15 @@ docker compose up -d
 
 ---
 ## 4. 更新日志
+
+### 2.7.107
+
+- Linux 一键安装脚本新增独立后台升级：`install.sh update` 与 `mdeskctl update` 可在 SSH 或内置终端断开后继续执行，并提供下载校验、服务重启、健康检查、失败回滚及升级状态与日志。
+- 完善 fnOS 应用接入：支持嵌套应用条目、多语言应用名与嵌套 CGI，正确转发登录会话、Cookie、重定向和错误页，并加强应用路径与脚本执行边界校验。
+- 优化端口服务识别与图标匹配：覆盖域名路由、虚拟主机、Docker 容器名、HTTP/HTTPS 回退及 IPv4/IPv6，并改进受限页面探测和身份匹配准确性。
+- 新增 Basic Auth 登录中转页，可直接在 M·Desk 内完成受保护服务认证，并校验登录后的跳转地址。
+- 优化分享与静态目录浏览：长文件名不再撑破表格；管理页、分享页和状态页使用带版本号的应用图标，减少旧图标缓存。
+- 调整桌面窗口交互：改进最大化拖拽还原、标题栏边缘拖动和最小化操作边界，窗口状态恢复更稳定。
 
 ### 2.7.106
 

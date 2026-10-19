@@ -1,5 +1,5 @@
 {
-  "version": 3,
+  "version": 4,
   "tips": [
     {
       "id": "tip_001",
@@ -48,7 +48,12 @@
     },
     {
       "id": "tip_010",
-      "content": "Linux 系统状态支持查看并管理 Swap",
+      "content": "Linux 一键安装支持后台升级，断开终端后仍会继续并自动重启服务",
+      "meta": {}
+    },
+    {
+      "id": "tip_011",
+      "content": "受保护的内网服务可在 M·Desk 内完成 Basic Auth 登录",
       "meta": {}
     }
   ]

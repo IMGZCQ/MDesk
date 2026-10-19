@@ -70,7 +70,7 @@ M·Desk 一个高效轻便的服务器运维桌面系统；集结反代服务、
 | Linux amd64 | `MDesk-linux-amd64` | 适用于常见 x86_64 设备 |
 | Linux arm64 | `MDesk-linux-arm64` | 适用于 ARM64 设备 |
 | Linux armv7 | `MDesk-linux-armv7` | 适用于 32 位 ARMv7 设备 |
-| fnOS | `MDesk_2.7.106.fpk` | 支持 amd64 与 arm64 |
+| fnOS | `MDesk_2.7.107.fpk` | 支持 amd64 与 arm64 |
 
 ### Linux 命令行
 
@@ -90,7 +90,7 @@ ARM64 设备请将文件名替换为 `MDesk-linux-arm64`，32 位 ARMv7 设备�
 
 ### Linux 一键安装（systemd / OpenRC / SysV）
 
-一键安装会自动识别 `amd64`、`arm64` 或 `armv7`。脚本会优先从 `https://fndesk.imcq.top/FPK/MDesk/` 下载对应二进制文件；如果该镜像不可用，再回退到 GitHub Release 的多个加速地址中选择可用且响应较快的线路。安装时会按 systemd、OpenRC、SysV 的顺序自动探测服务管理器；如果系统没有这些服务管理器，则启动后台进程，并在 cron 可用时注册 `@reboot` 启动。若系统同时没有 cron，后台进程仍可正常使用，但系统重启后需要手动执行 `sudo mdeskctl start`，这是缺少 init/服务管理器时的系统限制。
+一键安装会自动识别 `amd64`、`arm64` 或 `armv7`。脚本会优先从 `https://fndesk.imcq.top/FPK/MDesk/` 下载对应二进制文件；如果该镜像不可用，再回退到 GitHub Release 的多个加速地址中选择可用且响应较快的线路。安装时会优先使用 systemd，并兼容 OpenRC、SysV；所选服务管理器注册、启动或健康检查失败时，会自动降级为独立后台进程。后台模式会在 cron 可用时注册 `@reboot` 启动；若系统同时没有 cron，后台进程仍可正常使用，但系统重启后需要手动执行 `sudo mdeskctl start`，这是缺少 init/服务管理器时的系统限制。
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/IMGZCQ/MDesk/main/install.sh | sudo bash
@@ -130,7 +130,15 @@ sudo env MDESK_SERVICE_MODE=sysv bash install.sh
 sudo env MDESK_SERVICE_MODE=process bash install.sh
 ```
 
-升级或重新安装会先停止旧服务，下载并校验新二进制，再注册并启动新服务；启动或健康检查失败时会恢复旧二进制和服务配置。可使用 `sudo mdeskctl status` 查看服务状态。
+升级或重新安装会交给独立后台任务执行，因此即使 MDesk 内置终端、SSH 会话或发起命令的终端断开，更新仍会继续。任务会下载并校验新二进制、重启服务并执行 HTTP 健康检查；失败时会恢复旧二进制和配置，如果原服务管理器仍无法启动，则会自动用后台进程恢复旧版本。可使用以下命令发起或查看更新：
+
+```bash
+sudo bash install.sh update
+sudo mdeskctl update
+sudo mdeskctl status
+```
+
+更新日志和最近状态分别保存在 `/etc/mdesk/update.log` 与 `/etc/mdesk/update.status`。
 
 卸载命令：
 
@@ -227,11 +235,11 @@ docker run -d \
 
 Docker 管理需要挂载 Docker Socket。文件管理与终端默认只看到容器内文件，如需管理宿主机目录，请额外挂载对应卷。
 
-仓库 Actions secrets 需要配置 `DOCKERHUB_TOKEN`，建议使用 Docker Hub 的 Read & Write access token。Release 发布会推送 `latest`、版本号和完整标签；也可以通过 `workflow_dispatch` 手动补发指定版本，版本号填写 `2.7.106` 或 `v2.7.106` 均可。
+仓库 Actions secrets 需要配置 `DOCKERHUB_TOKEN`，建议使用 Docker Hub 的 Read & Write access token。Release 发布会推送 `latest`、版本号和完整标签；也可以通过 `workflow_dispatch` 手动补发指定版本，版本号填写 `2.7.107` 或 `v2.7.107` 均可。
 
 ### fnOS 安装包
 
-1. 从 [Releases](https://github.com/IMGZCQ/MDesk/releases) 下载最新的 `MDesk_2.7.106.fpk`。
+1. 从 [Releases](https://github.com/IMGZCQ/MDesk/releases) 下载最新的 `MDesk_2.7.107.fpk`。
 2. 在 fnOS 应用中心手动安装。
 3. 安装过程中可选择 HTTP 或 HTTPS，默认使用 HTTP 和 `19188` 端口。
 4. 安装完成后访问 `http://<设备地址>:19188/@admin`，首次访问时设置管理密码。
@@ -263,6 +271,15 @@ MDesk 使用手册.md      用户使用、部署与参数说明
 > M·Desk 的管理入口、终端与文件管理拥有较高权限。请使用强密码，优先通过 HTTPS、内网 ACL、VPN 或零信任网关访问，不要将管理入口直接暴露在不可信网络中。
 
 ## 更新日志
+
+### 2.7.107
+
+- Linux 一键安装脚本新增独立后台升级：`install.sh update` 与 `mdeskctl update` 可在 SSH 或内置终端断开后继续执行，并提供下载校验、服务重启、健康检查、失败回滚及升级状态与日志。
+- 完善 fnOS 应用接入：支持嵌套应用条目、多语言应用名与嵌套 CGI，正确转发登录会话、Cookie、重定向和错误页，并加强应用路径与脚本执行边界校验。
+- 优化端口服务识别与图标匹配：覆盖域名路由、虚拟主机、Docker 容器名、HTTP/HTTPS 回退及 IPv4/IPv6，并改进受限页面探测和身份匹配准确性。
+- 新增 Basic Auth 登录中转页，可直接在 M·Desk 内完成受保护服务认证，并校验登录后的跳转地址。
+- 优化分享与静态目录浏览：长文件名不再撑破表格；管理页、分享页和状态页使用带版本号的应用图标，减少旧图标缓存。
+- 调整桌面窗口交互：改进最大化拖拽还原、标题栏边缘拖动和最小化操作边界，窗口状态恢复更稳定。
 
 ### 2.7.106
 
