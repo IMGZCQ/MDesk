@@ -46,7 +46,7 @@ M·Desk 一个高效轻便的服务器运维桌面系统；集结反代服务、
 | 模块 | 说明 |
 | --- | --- |
 | **服务路由** | 统一管理多个服务入口，支持域名绑定与快速切换，各服务保持原有访问路径；桌面图标可从 Web Manifest、`srcset`、JSON-LD 与页面图像中自动识别，并支持桌面资源上传与安全校验。 |
-| **fnOS 应用接入** | 扫描 fnOS 应用中心，将端口、Unix Socket 与 CGI 应用接入桌面，支持应用图标、版本、访问入口与安全路径校验。 |
+| **fnOS 应用接入** | 扫描 fnOS 应用中心，将端口、Unix Socket 与 CGI 应用接入桌面，支持应用图标、版本、访问入口与安全路径校验；持续完善 MPK 应用包规范，让元数据、资源与运行描述保持一致。MPK 运行层兼容标准 Linux 基础工具集，非 fnOS 环境同样可以正常启动。 |
 | **本地终端** | 浏览器中的多会话终端，支持后台保活、快捷命令与右键菜单操作；常见 POSIX 环境优先使用 Bash，同时保留 Zsh 等显式 shell 选择。 |
 | **文件管理** | 在线浏览、编辑、上传下载、压缩解压；支持多窗口与同目录窗口复用，每个窗口独立保存路径、选择、排序和视图状态，文件操作仅刷新受影响窗口，`F5` 刷新当前激活窗口。复制、移动和上传冲突支持跳过、覆盖或保留两者；目录冲突递归合并，跨分区移动会先校验副本再删除源文件。编辑器支持多文件独立编辑与未保存内容确认。上传、下载、复制和移动任务集中进入统一任务中心；支持右键菜单、框选、直接分享，以及图片、音视频和文本预览。目录链接、文件链接、失效链接与 Windows junction 会被明确标记。 |
 | **外链分享** | 为文件或目录生成分享链接，可设置访问密码、常用到期时间与启停状态；访问页面支持图片、音视频和只读文本预览。 |
@@ -54,8 +54,8 @@ M·Desk 一个高效轻便的服务器运维桌面系统；集结反代服务、
 | **组网隧道** | 支持 FRPC、EasyTier 与 Cloudflare Tunnel，并可分别管理多个实例；Cloudflare 提供命名隧道与快捷隧道两种模式。 |
 | **Docker 管理** | 管理容器、Compose 项目、本地镜像、镜像仓库、Docker 网络与镜像加速器；支持按镜像、Compose 服务或容器逐项检测更新、拉取新镜像并重建服务，也支持重启 Docker 服务。 |
 | **进程管理** | 查看真实进程列表、PID、用户、状态、CPU、内存、启动时间与可执行路径；支持搜索、端口反查、排序筛选、详情与安全结束进程。 |
-| **系统状态** | 集中展示系统与硬件信息、硬盘和 SMART 健康、网络接口与流量、CPU、内存、GPU 与资源趋势；后台统一采样记录 CPU、内存、GPU、网络和磁盘读写趋势。系统设置支持修改设备名称，并针对不同平台提供权限、格式校验与重启提示；Linux 补充网卡链路速率读取并优化磁盘拓扑呈现，系统端口图标支持 IPv4/IPv6、HTTPS/HTTP 回退与独立缓存。 |
-| **系统设置与个性化** | 提供四套应用图标套装，可切换桌面图标单击或双击打开；支持指定独立壁纸目录，自动检测目录变化并刷新缩略图。窗口焦点恢复、任务栏显示和后台刷新策略也会随桌面操作状态平滑调整。 |
+| **系统状态** | 集中展示系统与硬件信息、硬盘和 SMART 健康、网络接口与流量、CPU、内存、GPU 与资源趋势；后台统一采样记录 CPU、内存、GPU、网络和磁盘读写趋势。Linux 支持 Swap 路径、类型、容量与使用率查看，并支持安全启停和单个 Swap 文件容量调整。系统设置支持修改设备名称，并针对不同平台提供权限、格式校验与重启提示；Linux 补充网卡链路速率读取并优化磁盘拓扑呈现。 |
+| **系统设置与个性化** | 提供五套应用图标套装，可切换桌面图标单击或双击打开；支持指定独立壁纸目录，自动检测目录变化并刷新缩略图。窗口支持边缘与四角吸附、顶部最大化及拖拽恢复，窗口焦点、吸附状态和后台刷新策略会随桌面操作平滑调整；应用中心安装或卸载应用时自动同步桌面图标。 |
 
 ---
 
@@ -70,7 +70,7 @@ M·Desk 一个高效轻便的服务器运维桌面系统；集结反代服务、
 | Linux amd64 | `MDesk-linux-amd64` | 适用于常见 x86_64 设备 |
 | Linux arm64 | `MDesk-linux-arm64` | 适用于 ARM64 设备 |
 | Linux armv7 | `MDesk-linux-armv7` | 适用于 32 位 ARMv7 设备 |
-| fnOS | `MDesk_2.7.103.fpk` | 支持 amd64 与 arm64 |
+| fnOS | `MDesk_2.7.106.fpk` | 支持 amd64 与 arm64 |
 
 ### Linux 命令行
 
@@ -88,9 +88,9 @@ chmod +x ./MDesk-linux-amd64
 
 ARM64 设备请将文件名替换为 `MDesk-linux-arm64`，32 位 ARMv7 设备请使用 `MDesk-linux-armv7`。可通过启动参数调整访问协议、监听地址、数据目录、日志和组网配置，完整说明见 [MDesk 使用手册](./MDesk%20使用手册.md)。
 
-### Linux 一键安装（systemd）
+### Linux 一键安装（systemd / OpenRC / SysV）
 
-一键安装会自动识别 `amd64`、`arm64` 或 `armv7`。脚本会优先从 `https://fndesk.imcq.top/FPK/MDesk/` 下载对应二进制文件；如果该镜像不可用，再回退到 GitHub Release 的多个加速地址中选择可用且响应较快的线路。
+一键安装会自动识别 `amd64`、`arm64` 或 `armv7`。脚本会优先从 `https://fndesk.imcq.top/FPK/MDesk/` 下载对应二进制文件；如果该镜像不可用，再回退到 GitHub Release 的多个加速地址中选择可用且响应较快的线路。安装时会按 systemd、OpenRC、SysV 的顺序自动探测服务管理器；如果系统没有这些服务管理器，则启动后台进程，并在 cron 可用时注册 `@reboot` 启动。若系统同时没有 cron，后台进程仍可正常使用，但系统重启后需要手动执行 `sudo mdeskctl start`，这是缺少 init/服务管理器时的系统限制。
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/IMGZCQ/MDesk/main/install.sh | sudo bash
@@ -115,13 +115,22 @@ sudo bash install.sh uninstall
 
 安装目录建议使用不含空格和特殊字符的路径，例如 `/opt/MDesk`。
 
-安装完成后会注册并启动 `mdesk.service`，同时设置为开机自动启动。管理后台地址为：
+安装完成后会按当前环境注册并启动服务，并在服务管理器或 cron 可用时设置为开机自动启动。管理后台地址为：
 
 ```text
 http://<设备地址>:<端口>/@admin
 ```
 
-升级或重新安装会在后台执行，服务启动后自动进行健康检查；失败时回滚到升级前版本，并写入 `/var/log/mdesk-upgrade.log`。可使用 `sudo mdeskctl status` 查看服务与最近一次升级状态，`MDESK_UPGRADE_WAIT_SECONDS` 用于调整等待上限，默认 `300` 秒。
+如需强制使用某个服务模式，可设置 `MDESK_SERVICE_MODE`：
+
+```bash
+sudo env MDESK_SERVICE_MODE=systemd bash install.sh
+sudo env MDESK_SERVICE_MODE=openrc bash install.sh
+sudo env MDESK_SERVICE_MODE=sysv bash install.sh
+sudo env MDESK_SERVICE_MODE=process bash install.sh
+```
+
+升级或重新安装会先停止旧服务，下载并校验新二进制，再注册并启动新服务；启动或健康检查失败时会恢复旧二进制和服务配置。可使用 `sudo mdeskctl status` 查看服务状态。
 
 卸载命令：
 
@@ -218,11 +227,11 @@ docker run -d \
 
 Docker 管理需要挂载 Docker Socket。文件管理与终端默认只看到容器内文件，如需管理宿主机目录，请额外挂载对应卷。
 
-仓库 Actions secrets 需要配置 `DOCKERHUB_TOKEN`，建议使用 Docker Hub 的 Read & Write access token。Release 发布会推送 `latest`、版本号和完整标签；也可以通过 `workflow_dispatch` 手动补发指定版本，版本号填写 `2.7.103` 或 `v2.7.103` 均可。
+仓库 Actions secrets 需要配置 `DOCKERHUB_TOKEN`，建议使用 Docker Hub 的 Read & Write access token。Release 发布会推送 `latest`、版本号和完整标签；也可以通过 `workflow_dispatch` 手动补发指定版本，版本号填写 `2.7.106` 或 `v2.7.106` 均可。
 
 ### fnOS 安装包
 
-1. 从 [Releases](https://github.com/IMGZCQ/MDesk/releases) 下载最新的 `MDesk_2.7.103.fpk`。
+1. 从 [Releases](https://github.com/IMGZCQ/MDesk/releases) 下载最新的 `MDesk_2.7.106.fpk`。
 2. 在 fnOS 应用中心手动安装。
 3. 安装过程中可选择 HTTP 或 HTTPS，默认使用 HTTP 和 `19188` 端口。
 4. 安装完成后访问 `http://<设备地址>:19188/@admin`，首次访问时设置管理密码。
@@ -254,6 +263,24 @@ MDesk 使用手册.md      用户使用、部署与参数说明
 > M·Desk 的管理入口、终端与文件管理拥有较高权限。请使用强密码，优先通过 HTTPS、内网 ACL、VPN 或零信任网关访问，不要将管理入口直接暴露在不可信网络中。
 
 ## 更新日志
+
+### 2.7.106
+
+- 系统状态新增 Linux Swap 管理，可查看路径、类型、容量与使用情况，并安全启停或调整单个 Swap 文件容量；分区或多重 Swap 配置会自动采用更稳妥的启停策略。
+- 桌面窗口支持拖至屏幕边缘或四角分屏、拖至顶部最大化，并可从最大化状态拖拽恢复；吸附状态与恢复位置会随桌面布局保存。
+- 端口管理增强服务识别、图标匹配与右键操作，可快速查看详情、复制信息、发送到桌面、打开服务或创建路由。
+- 系统设置新增第五套应用图标，继续支持桌面图标单击或双击打开。
+- 应用中心安装或卸载应用时自动同步桌面图标，CasaOS 在线应用源同样适用。
+- Linux 安装脚本新增 OpenRC、SysV 与独立后台进程运行支持，并在 cron 可用时注册开机启动；同时补齐失败回滚、健康检查与 `mdeskctl` 服务管理。
+- 完善管理路径结尾斜杠处理，并在后端不可用时显示更友好的 HTML 状态页；同主机多实例的 Cookie 相互隔离，避免登录状态串扰。
+- 修复 Chromium MPK 在缺少 `flock`、`seq` 的 Linux 环境无法启动的问题，并增强异常退出诊断；修复应用中心页面 `global is not defined` 错误，继续推进应用中心、MPK 规范与主题细节。
+- 用户壁纸支持指定独立目录，自动检测目录变化，并优化缩略图缓存与扫描刷新。
+- 文件管理器支持表头排序并记忆排序偏好，收藏夹保存流程更加稳定。
+- 视频播放支持长按临时 2x 播放，同时优化播放器控制栏显示。
+- 完善 Docker Compose 管理，支持按 YAML 重构项目、删除项目配置，并保护托管项目。
+- 外部链接无法在应用内打开时，提供更清晰的提示、重试和浏览器打开入口。
+- 优化窗口焦点恢复、任务栏显示，以及任务中心和隧道页面的后台刷新策略。
+- 修复旧版提示缓存覆盖新版默认提示的问题。
 
 ### 2.7.103
 
