@@ -4,7 +4,8 @@
 			"title": "M·Desk",
 			"icon": "images/icon_{0}.png",
 			"type": "url",
-			"url": "/cgi/ThirdParty/mdesk/index.cgi/",
+			"port": "${wizard_port}",
+			"url": "/@admin",
 			"allUsers": false,
 			"control": {
 				"accessPerm": "readonly"

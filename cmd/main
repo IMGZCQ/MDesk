@@ -26,20 +26,6 @@ LOG_FILE="$SHARE_DIR/运行日志.log"
 PORT="${wizard_port:-${TRIM_SERVICE_PORT:-19188}}"
 SCHEME="${wizard_scheme:-http}"
 
-sync_cgi() {
-	[ -n "$TRIM_APPDEST" ] || return 0
-	for CGI_FILE in "$TRIM_APPDEST/ui/index.cgi" "$TRIM_APPDEST/app/ui/index.cgi"; do
-		if [ -f "$CGI_FILE" ]; then
-			sed -i \
-				-e "s/^SCHEME=\"[^\"]*\"/SCHEME=\"$SCHEME\"/" \
-				-e "s/^PORT=\"[^\"]*\"/PORT=\"$PORT\"/" \
-				"$CGI_FILE" 2>/dev/null || true
-			chmod +x "$CGI_FILE" 2>/dev/null || true
-			return 0
-		fi
-	done
-}
-
 # 兼容旧版本数据目录：迁移自 TRIM_PKGVAR/data
 if [ -d "$TRIM_PKGVAR/data" ] && [ ! -d "$DATA_DIR" ]; then
 	mkdir -p "$SHARE_DIR"
@@ -59,7 +45,6 @@ start() {
 	esac
 	mkdir -p "$DATA_DIR" "$SHARE_DIR"
 	chown -R "$TRIM_USERNAME:$TRIM_GROUPNAME" "$TRIM_PKGVAR" "$SHARE_DIR" 2>/dev/null || true
-	sync_cgi
 	# 以 root 运行服务：文件管理需访问 /vol1 等系统目录，
 	# 降权为专属用户会因权限不足无法读取存储池。
 	# 运行日志由程序自身按 5MB 轮转（保留 3 份历史），这里不再重定向追加。

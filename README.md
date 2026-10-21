@@ -70,7 +70,7 @@ M·Desk 一个高效轻便的服务器运维桌面系统；集结反代服务、
 | Linux amd64 | `MDesk-linux-amd64` | 适用于常见 x86_64 设备 |
 | Linux arm64 | `MDesk-linux-arm64` | 适用于 ARM64 设备 |
 | Linux armv7 | `MDesk-linux-armv7` | 适用于 32 位 ARMv7 设备 |
-| fnOS | `MDesk_2.7.109.fpk` | 支持 amd64、arm64 与 armv7 |
+| fnOS | `MDesk_2.7.113.fpk` | 支持 amd64 与 arm64 |
 
 ### Linux 命令行
 
@@ -239,11 +239,11 @@ docker run -d \
 
 Docker 管理需要挂载 Docker Socket。文件管理与终端默认只看到容器内文件，如需管理宿主机目录，请额外挂载对应卷。
 
-仓库 Actions secrets 需要配置 `DOCKERHUB_TOKEN`，建议使用 Docker Hub 的 Read & Write access token。Release 发布会推送 `latest`、版本号和完整标签；也可以通过 `workflow_dispatch` 手动补发指定版本，版本号填写 `2.7.109` 或 `v2.7.109` 均可。
+仓库 Actions secrets 需要配置 `DOCKERHUB_TOKEN`，建议使用 Docker Hub 的 Read & Write access token。Release 发布会推送 `latest`、版本号和完整标签；也可以通过 `workflow_dispatch` 手动补发指定版本，版本号填写 `2.7.113` 或 `v2.7.113` 均可。
 
 ### fnOS 安装包
 
-1. 从 [Releases](https://github.com/IMGZCQ/MDesk/releases) 下载最新的 `MDesk_2.7.109.fpk`。
+1. 从 [Releases](https://github.com/IMGZCQ/MDesk/releases) 下载最新的 `MDesk_2.7.113.fpk`。
 2. 在 fnOS 应用中心手动安装。
 3. 安装过程中可选择 HTTP 或 HTTPS，默认使用 HTTP 和 `19188` 端口。
 4. 安装完成后访问 `http://<设备地址>:19188/@admin`，首次访问时设置管理密码。
@@ -275,6 +275,23 @@ MDesk 使用手册.md      用户使用、部署与参数说明
 > M·Desk 的管理入口、终端与文件管理拥有较高权限。请使用强密码，优先通过 HTTPS、内网 ACL、VPN 或零信任网关访问，不要将管理入口直接暴露在不可信网络中。
 
 ## 更新日志
+
+### 2.7.113
+
+- 新增远程管理：登录页可直接输入另一台 M·Desk 服务器管理
+- 优化远程连接交互：失败时不再显示原始网络报错，断线时弹出遮罩提示层，提供重新连接与返回登录两个明确出口。
+- 修复远程接管时桌面壁纸显示不出来、应用中心图标全部裂成占位图的问题。
+- 修复桌面图标把主机地址固化进配置导致换入口打开就裂图的问题；自定义图标支持相对路径填写与校验，旧配置自动改写。
+- 新增自定义图标编辑窗口按 Esc 关闭，且只关闭焦点所在的那一个窗口。
+- 优化大文件上传：改为 5MB 分片并发上传，每片失败自动重试，走二进制直传不再 base64 编码；上传完成前校验分片齐全，避免落盘出损坏的半截文件。
+- 公开预览窗改造：手机上默认最大化，还原后可拖动缩放；去掉标题栏类型图标，双击标题栏可最大化与还原；改为非模态，打开时背景文件列表仍可滚动点击；支持同时打开多个预览窗口。
+- 移动端触屏长按桌面图标 0.4 秒进入拖动、1.2 秒弹出右键菜单。
+- 分享目录新增一键复制深链链接，对方打开即弹出指定文件预览。
+- 修复端口详情中归属冲突的 Docker 归属关联重复出现的问题。
+- 修复 Docker「立即更新」报错、误判最新标签导致镜像降级、不同 Compose 项目互相串改的问题。
+- 修复文件管理侧栏收藏夹与已打开区域相互重叠、目录树内容超出后无法滚动的问题；优化侧栏空间分配，收藏与已打开固定占一半且折叠时自适应。
+- 修复 MDesk 启动时锁重入导致的死锁，导致程序无法启动的问题。
+- 同步官网、README、使用手册与 fnOS 清单到 `2.7.113`，重新构建 Windows 服务版、Windows 桌面版、Linux amd64、Linux arm64 与 fnOS 安装包。
 
 ### 2.7.109
 
