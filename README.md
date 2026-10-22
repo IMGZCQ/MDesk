@@ -1,4 +1,4 @@
-<p align="center">
+﻿<p align="center">
   <img src="https://raw.githubusercontent.com/IMGZCQ/MDesk/main/ICON.PNG" width="120" alt="M·Desk">
 </p>
 
@@ -70,7 +70,7 @@ M·Desk 一个高效轻便的服务器运维桌面系统；集结反代服务、
 | Linux amd64 | `MDesk-linux-amd64` | 适用于常见 x86_64 设备 |
 | Linux arm64 | `MDesk-linux-arm64` | 适用于 ARM64 设备 |
 | Linux armv7 | `MDesk-linux-armv7` | 适用于 32 位 ARMv7 设备 |
-| fnOS | `MDesk_2.7.113.fpk` | 支持 amd64 与 arm64 |
+| fnOS | `MDesk_2.7.114.fpk` | 支持 amd64 与 arm64 |
 
 ### Linux 命令行
 
@@ -239,11 +239,11 @@ docker run -d \
 
 Docker 管理需要挂载 Docker Socket。文件管理与终端默认只看到容器内文件，如需管理宿主机目录，请额外挂载对应卷。
 
-仓库 Actions secrets 需要配置 `DOCKERHUB_TOKEN`，建议使用 Docker Hub 的 Read & Write access token。Release 发布会推送 `latest`、版本号和完整标签；也可以通过 `workflow_dispatch` 手动补发指定版本，版本号填写 `2.7.113` 或 `v2.7.113` 均可。
+仓库 Actions secrets 需要配置 `DOCKERHUB_TOKEN`，建议使用 Docker Hub 的 Read & Write access token。Release 发布会推送 `latest`、版本号和完整标签；也可以通过 `workflow_dispatch` 手动补发指定版本，版本号填写 `2.7.114` 或 `v2.7.114` 均可。
 
 ### fnOS 安装包
 
-1. 从 [Releases](https://github.com/IMGZCQ/MDesk/releases) 下载最新的 `MDesk_2.7.113.fpk`。
+1. 从 [Releases](https://github.com/IMGZCQ/MDesk/releases) 下载最新的 `MDesk_2.7.114.fpk`。
 2. 在 fnOS 应用中心手动安装。
 3. 安装过程中可选择 HTTP 或 HTTPS，默认使用 HTTP 和 `19188` 端口。
 4. 安装完成后访问 `http://<设备地址>:19188/@admin`，首次访问时设置管理密码。
@@ -276,7 +276,22 @@ MDesk 使用手册.md      用户使用、部署与参数说明
 
 ## 更新日志
 
+### 2.7.114
+
+- 修复 MPK 安装包验证器把包内普通 JSON 误判为元数据文件的问题。
+- 修复 MPK 应用在应用中心停止后，桌面快捷方式双击又把它重新拉起的问题。
+- 新增 manifest 的 store 段与 mpkpack store 命令，可从应用包直接生成商店条目、导出图标并自动计算校验值。
+- 重做开发者文档，让开发更友好更便捷。
+- 修复窗口内的回车与空格键被桌面窗口层吞掉的问题，路由服务的域名输入框现在可以正常回车换行。
+- 补充多架构打包策略与商店按架构隐藏应用的说明。
 ### 2.7.113
+
+- 修复 MPK 安装包验证器把包内普通 JSON 误判为元数据文件的问题。
+- 修复 MPK 应用在应用中心停止后，桌面快捷方式双击又把它重新拉起的问题。
+- 新增 manifest 的 store 段与 mpkpack store 命令，可从应用包直接生成商店条目、导出图标并自动计算校验值。
+- 重做开发者文档，让开发更友好更便捷。
+- 修复窗口内的回车与空格键被桌面窗口层吞掉的问题，路由服务的域名输入框现在可以正常回车换行。
+- 补充多架构打包策略与商店按架构隐藏应用的说明。
 
 - 新增远程管理：登录页可直接输入另一台 M·Desk 服务器管理
 - 优化远程连接交互：失败时不再显示原始网络报错，断线时弹出遮罩提示层，提供重新连接与返回登录两个明确出口。
@@ -291,7 +306,7 @@ MDesk 使用手册.md      用户使用、部署与参数说明
 - 修复 Docker「立即更新」报错、误判最新标签导致镜像降级、不同 Compose 项目互相串改的问题。
 - 修复文件管理侧栏收藏夹与已打开区域相互重叠、目录树内容超出后无法滚动的问题；优化侧栏空间分配，收藏与已打开固定占一半且折叠时自适应。
 - 修复 MDesk 启动时锁重入导致的死锁，导致程序无法启动的问题。
-- 同步官网、README、使用手册与 fnOS 清单到 `2.7.113`，重新构建 Windows 服务版、Windows 桌面版、Linux amd64、Linux arm64 与 fnOS 安装包。
+- 同步官网、README、使用手册与 fnOS 清单到 `2.7.114`，重新构建 Windows 服务版、Windows 桌面版、Linux amd64、Linux arm64 与 fnOS 安装包。
 
 ### 2.7.109
 
