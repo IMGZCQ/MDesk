@@ -70,7 +70,7 @@ M·Desk 一个高效轻便的服务器运维桌面系统；集结反代服务、
 | Linux amd64 | `MDesk-linux-amd64` | 适用于常见 x86_64 设备 |
 | Linux arm64 | `MDesk-linux-arm64` | 适用于 ARM64 设备 |
 | Linux armv7 | `MDesk-linux-armv7` | 适用于 32 位 ARMv7 设备 |
-| fnOS | `MDesk_2.7.125.fpk` | 支持 amd64 与 arm64 |
+| fnOS | `MDesk_2.7.126.fpk` | 支持 amd64 与 arm64 |
 
 ### Linux 命令行
 
@@ -243,7 +243,7 @@ Docker 管理需要挂载 Docker Socket。文件管理与终端默认只看到�
 
 ### fnOS 安装包
 
-1. 从 [Releases](https://github.com/IMGZCQ/MDesk/releases) 下载最新的 `MDesk_2.7.125.fpk`。
+1. 从 [Releases](https://github.com/IMGZCQ/MDesk/releases) 下载最新的 `MDesk_2.7.126.fpk`。
 2. 在 fnOS 应用中心手动安装。
 3. 安装过程中可选择 HTTP 或 HTTPS，默认使用 HTTP 和 `19188` 端口。
 4. 安装完成后访问 `http://<设备地址>:19188/@admin`，首次访问时设置管理密码。
@@ -275,6 +275,12 @@ MDesk 使用手册.md      用户使用、部署与参数说明
 > M·Desk 的管理入口、终端与文件管理拥有较高权限。请使用强密码，优先通过 HTTPS、内网 ACL、VPN 或零信任网关访问，不要将管理入口直接暴露在不可信网络中。
 
 ## 更新日志
+
+### 2.7.126
+
+- MPK 应用安装校验并暂存安装包，再进入配置向导；一次性安装票据支持超时、取消和失败清理，配置与是否启动在最终安装时提交。
+- 文件上传新增冲突预检，可对冲突文件逐项选择跳过、覆盖或保留两者；批量上传的跳过策略不再影响无冲突文件，进度按实际传输量显示。
+- 代码编辑器改为空闲预加载，增加加载超时、自动重试、明确错误提示和“重试加载”按钮，降低网络波动导致的空白编辑器问题。
 
 ### 2.7.125
 
