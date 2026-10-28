@@ -1420,11 +1420,11 @@ show_service_failure() {
 
 http_probe() {
   if command -v curl >/dev/null 2>&1; then
-    curl -fsSL --max-time 2 "http://127.0.0.1:${PORT}/@admin" >/dev/null 2>&1
+    curl -fsSL --max-time 2 "http://127.0.0.1:${PORT}/@mdesk/healthz" >/dev/null 2>&1
     return
   fi
   if command -v wget >/dev/null 2>&1; then
-    wget -q -T 2 -O /dev/null "http://127.0.0.1:${PORT}/@admin" >/dev/null 2>&1
+    wget -q -T 2 -O /dev/null "http://127.0.0.1:${PORT}/@mdesk/healthz" >/dev/null 2>&1
     return
   fi
   return 1

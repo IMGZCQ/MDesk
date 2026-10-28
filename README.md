@@ -70,7 +70,7 @@ M·Desk 一个高效轻便的服务器运维桌面系统；集结反代服务、
 | Linux amd64 | `MDesk-linux-amd64` | 适用于常见 x86_64 设备 |
 | Linux arm64 | `MDesk-linux-arm64` | 适用于 ARM64 设备 |
 | Linux armv7 | `MDesk-linux-armv7` | 适用于 32 位 ARMv7 设备 |
-| fnOS | `MDesk_2.7.131.fpk` | 支持 amd64 与 arm64 |
+| fnOS | `MDesk_2.7.132.fpk` | 支持 amd64 与 arm64 |
 
 ### Linux 命令行
 
@@ -244,7 +244,7 @@ Docker 管理需要挂载 Docker Socket。文件管理与终端默认只看到�
 
 ### fnOS 安装包
 
-1. 从 [Releases](https://github.com/IMGZCQ/MDesk/releases) 下载最新的 `MDesk_2.7.131.fpk`。
+1. 从 [Releases](https://github.com/IMGZCQ/MDesk/releases) 下载最新的 `MDesk_2.7.132.fpk`。
 2. 在 fnOS 应用中心手动安装。
 3. 安装过程中可选择 HTTP 或 HTTPS，默认使用 HTTP 和 `19188` 端口。
 4. 安装完成后访问 `http://<设备地址>:19188/@admin`，首次访问时设置管理密码。
@@ -277,8 +277,17 @@ MDesk 使用手册.md      用户使用、部署与参数说明
 
 > [!NOTE]
 > 将管理入口改为自定义路径后，默认 `/@admin` 会释放为普通路径：绑定 Host 时按原路径反代或访问静态站点，否则进入默认代理链；旧路径不再执行登录、会话或管理页面逻辑，也不再附加管理专用 CSP、X-Frame-Options 或 no-store 响应头。`/@mdesk` 和 `/@app` 不可设置为管理入口。
+> 服务健康检查固定使用 `GET/HEAD /@mdesk/healthz`，与管理入口路径无关；一键安装脚本也使用该端点探测启动状态。
 
 ## 更新日志
+
+### 2.7.132
+
+- 新增独立健康检查端点 `GET/HEAD /@mdesk/healthz`：返回 `ok` 且 `Cache-Control: no-store`，不依赖自定义管理入口，并保留为本地控制面路径；安装脚本改用该端点探测服务启动。
+- 管理静态资源缺失或请求目录时改为统一状态页，避免裸文件服务错误；自定义管理入口下的资源路由继续按当前入口处理。
+- `mpkpack store` 生成的商店列表页增强：原子写入、主题偏好持久化、目录更新追踪、详情包引用、空/缺失图标回退和准确体积格式化。
+- 按权威 `store_metadata.json` 同步 25 个 MPK 的名称、架构、作者与开发者，修正 11 个包的作者/开发者字段，并重新生成全部详情、索引与商店列表页。
+- 重新编译 mpkpack 六平台工具，更新官网下载表和 `checksums.txt`；同步更新官网、README、使用手册、manifest 与本地商店内容。
 
 ### 2.7.131
 
