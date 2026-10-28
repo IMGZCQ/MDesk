@@ -21,7 +21,7 @@ readonly INIT_SCRIPT="/etc/init.d/${SERVICE_NAME}"
 readonly PID_FILE="/run/${SERVICE_NAME}.pid"
 readonly CRON_FILE="/etc/cron.d/${SERVICE_NAME}"
 readonly GITHUB_REPO="IMGZCQ/MDesk"
-readonly MIRROR_BASE="https://fndesk.imcq.top/FPK/MDesk"
+readonly MIRROR_BASE="https://mdesk.imcq.top/releases"
 readonly SCRIPT_MIRROR_URL="https://fndesk.imcq.top/?url=mdesk"
 
 readonly DEFAULT_GITHUB_PROXIES=(
