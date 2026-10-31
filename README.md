@@ -70,7 +70,7 @@ M·Desk 一个高效轻便的服务器运维桌面系统；集结反代服务、
 | Linux amd64 | `MDesk-linux-amd64` | 适用于常见 x86_64 设备 |
 | Linux arm64 | `MDesk-linux-arm64` | 适用于 ARM64 设备 |
 | Linux armv7 | `MDesk-linux-armv7` | 适用于 32 位 ARMv7 设备 |
-| fnOS | `MDesk_2.7.147.fpk` | 支持 amd64 与 arm64 |
+| fnOS | `MDesk_2.7.149.fpk` | 支持 amd64 与 arm64 |
 
 ### Linux 命令行
 
@@ -244,7 +244,7 @@ Docker 管理需要挂载 Docker Socket。文件管理与终端默认只看到�
 
 ### fnOS 安装包
 
-1. 从 [Releases](https://github.com/IMGZCQ/MDesk/releases) 下载最新的 `MDesk_2.7.147.fpk`。
+1. 从 [Releases](https://github.com/IMGZCQ/MDesk/releases) 下载最新的 `MDesk_2.7.149.fpk`。
 2. 在 fnOS 应用中心手动安装。
 3. 安装过程中可选择 HTTP 或 HTTPS，默认使用 HTTP 和 `19188` 端口。
 4. 安装完成后访问 `http://<设备地址>:19188/@admin`，首次访问时设置管理密码。
@@ -280,6 +280,13 @@ MDesk 使用手册.md      用户使用、部署与参数说明
 > 服务健康检查固定使用 `GET/HEAD /@mdesk/healthz`，与管理入口路径无关；一键安装脚本也使用该端点探测启动状态。
 
 ## 更新日志
+
+### 2.7.149
+
+- 音乐播放器完善封面、歌曲信息和歌词读取。
+- 分享目录与静态网站目录分页保留当前查询参数。
+- Docker 更新支持按精确仓库或命名空间设置规则，可选择同系列、同主版本、任意主版本或仅当前标签的更新策略。
+- Docker 更新支持自定义 HTTPS 元数据源和策略缓存，并增加镜像加速回退及网络失败重试，提升更新检测和镜像拉取的稳定性。
 
 ### 2.7.147
 
