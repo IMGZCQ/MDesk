@@ -55,7 +55,7 @@ start() {
 	echo $! >"$PID_FILE"
 	sleep 1
 	if ! kill -0 "$(cat "$PID_FILE")" 2>/dev/null; then
-		echo "M·Desk 启动失败，请检查端口 $PORT 是否被占用，日志见 $LOG_FILE" >>"$TRIM_TEMP_LOGFILE"
+		echo "M•Desk 启动失败，请检查端口 $PORT 是否被占用，日志见 $LOG_FILE" >>"$TRIM_TEMP_LOGFILE"
 		exit 1
 	fi
 	exit 0

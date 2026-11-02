@@ -1,8 +1,8 @@
-﻿<p align="center">
-  <img src="https://raw.githubusercontent.com/IMGZCQ/MDesk/main/ICON.PNG" width="120" alt="M·Desk">
+﻿﻿<p align="center">
+  <img src="https://raw.githubusercontent.com/IMGZCQ/MDesk/main/ICON.PNG" width="120" alt="M•Desk">
 </p>
 
-<h1 align="center">M·Desk</h1>
+<h1 align="center">M•Desk</h1>
 
 <p align="center">高效轻便的服务器运维桌面系统</p>
 
@@ -15,21 +15,21 @@
 </p>
 
 <p align="center">
-  <img src="https://raw.githubusercontent.com/IMGZCQ/MDesk/main/poster.webp" alt="M·Desk 功能概览" width="100%">
+  <img src="https://raw.githubusercontent.com/IMGZCQ/MDesk/main/poster.webp" alt="M•Desk 功能概览" width="100%">
 </p>
 
 ## 桌面系统总览
 
 <p align="center">
-  <img src="https://raw.githubusercontent.com/IMGZCQ/MDesk/main/desktop-overview.webp" alt="M·Desk 桌面系统总览" width="52%">
+  <img src="https://raw.githubusercontent.com/IMGZCQ/MDesk/main/desktop-overview.webp" alt="M•Desk 桌面系统总览" width="52%">
 </p>
 
 <p align="center">
-  <img src="./desktop-overview-light.webp" alt="M·Desk 浅色主题桌面界面" width="49%">
-  <img src="./desktop-overview-dark.webp" alt="M·Desk 深色主题桌面界面" width="49%">
+  <img src="./desktop-overview-light.webp" alt="M•Desk 浅色主题桌面界面" width="49%">
+  <img src="./desktop-overview-dark.webp" alt="M•Desk 深色主题桌面界面" width="49%">
 </p>
 
-M·Desk 一个高效轻便的服务器运维桌面系统；集结反代服务、本地终端、组网穿透、分享收集、静态网站、文件和 Docker 管理等服务；所有服务都基于单一端口实现，享受极致的管理体验！
+M•Desk 一个高效轻便的服务器运维桌面系统；集结反代服务、本地终端、组网穿透、分享收集、静态网站、文件和 Docker 管理等服务；所有服务都基于单一端口实现，享受极致的管理体验！
 
 ## 快速入口
 
@@ -46,7 +46,7 @@ M·Desk 一个高效轻便的服务器运维桌面系统；集结反代服务、
 | 模块 | 说明 |
 | --- | --- |
 | **服务路由** | 统一管理多个服务入口，支持域名绑定与快速切换，各服务保持原有访问路径；桌面图标可从 Web Manifest、`srcset`、JSON-LD 与页面图像中自动识别，并支持桌面资源上传与安全校验。 |
-| **应用中心与 fnOS 接入** | 应用中心按 M·Desk 原生应用、1Panel 源与 CasaOS 源清晰分区，安装、升级与卸载弹窗显示真实应用图标，详情分列作者和开发者；三方订阅源支持名称自动获取和地址协议自动补全。应用中心来源的桌面图标右键可打开应用信息。扫描 fnOS 应用中心，将端口、Unix Socket 与 CGI 应用接入桌面，支持应用图标、版本、访问入口与安全路径校验。MPK 图标按文件内容校验，持续完善应用包规范与非 fnOS 环境兼容性。 |
+| **应用中心与 fnOS 接入** | 应用中心按 M•Desk 原生应用、1Panel 源与 CasaOS 源清晰分区，安装、升级与卸载弹窗显示真实应用图标，详情分列作者和开发者；三方订阅源支持名称自动获取和地址协议自动补全。应用中心来源的桌面图标右键可打开应用信息。扫描 fnOS 应用中心，将端口、Unix Socket 与 CGI 应用接入桌面，支持应用图标、版本、访问入口与安全路径校验。MPK 图标按文件内容校验，持续完善应用包规范与非 fnOS 环境兼容性。 |
 | **本地终端** | 浏览器中的多会话终端，支持后台保活、快捷命令与右键菜单操作；快捷命令内容使用默认两行、可垂直拖拽的多行输入框；文件管理空白区右键可打开终端并自动定位当前目录。常见 POSIX 环境优先使用 Bash，同时保留 Zsh 等显式 shell 选择。 |
 | **文件管理** | 在线浏览、编辑、上传下载、压缩解压；侧栏通过“目录 / 收藏 / 已打开”标签切换，目录支持双击展开和收起，工具栏图标统一为 `34×34` 按钮与 `28×28` 图标。支持多窗口与同目录窗口复用，每个窗口独立保存路径、选择、排序和视图状态，文件操作仅刷新受影响窗口，`F5` 刷新当前激活窗口。复制、移动和上传冲突支持跳过、覆盖或保留两者；目录冲突递归合并，跨分区移动会先校验副本再删除源文件。编辑器支持多文件独立编辑与未保存内容确认。上传、下载、复制和移动任务集中进入统一任务中心；支持右键菜单、框选、直接创建分享收集，以及图片、音视频和文本预览；音频播放器支持封面、歌曲信息、播放列表、歌词、搜索、随机与循环播放。列表与图标视图按需懒加载图片缩略图；图片支持左右滑动或相册前后切换并循环浏览、缩放平移和键盘操作，相邻图片预加载并兼容 HEIC；视频支持桌面与公开分享页共用的触控手势。 |
 | **分享收集** | 支持分享、收集和“都要”三种模式：分享用于浏览下载，收集仅提供访客上传区，“都要”同时开放两者；收集模式支持 `1 MB` 至 `100 GB` 单文件上限、超限提示与同名文件自动重命名，仅单个实际目录可启用。管理员可设置上传文件后缀白名单或黑名单，默认阻止可执行文件、脚本等高风险文件直接上传。分享管理列表直接显示分享地址，编辑带密码的分享时可以查看已保存的访问密码。目录页可切换列表与图标视图，图标和文件名均可打开预览且间距紧凑，并可选择当前页条目打包下载。分享登录会话具有有效期，在退出、密码或安全设置变化后立即失效；音频与歌词请求继续受分享权限保护并支持分段读取。 |
@@ -71,7 +71,7 @@ M·Desk 一个高效轻便的服务器运维桌面系统；集结反代服务、
 | Linux amd64 | `MDesk-linux-amd64` | 适用于常见 x86_64 设备 |
 | Linux arm64 | `MDesk-linux-arm64` | 适用于 ARM64 设备 |
 | Linux armv7 | `MDesk-linux-armv7` | 适用于 32 位 ARMv7 设备 |
-| fnOS | `MDesk_2.7.150.fpk` | 支持 amd64 与 arm64 |
+| fnOS | `MDesk_2.8.0.fpk` | 支持 amd64 与 arm64 |
 
 ### Linux 命令行
 
@@ -174,7 +174,7 @@ curl -fsSL https://raw.githubusercontent.com/IMGZCQ/MDesk/main/install.sh |
 | `-cf-token` | 首次导入 Cloudflare 命名隧道 Token |
 | `-force` | 强制使用命令行中的组网隧道配置覆盖已有模块配置 |
 
-Docker 管理建议在 Docker 所在 Linux 宿主机上运行，并确保 M·Desk 进程拥有 Docker Socket 的读写权限。
+Docker 管理建议在 Docker 所在 Linux 宿主机上运行，并确保 M•Desk 进程拥有 Docker Socket 的读写权限。
 
 ### 可选环境变量
 
@@ -220,10 +220,10 @@ services:
 docker compose up -d
 ```
 
-`/var/run/docker.sock` 用于 M·Desk 的 Docker 管理功能。不需要该功能时可以移除这一行，但容器、Compose、镜像与网络页面将无法连接宿主机 Docker。
+`/var/run/docker.sock` 用于 M•Desk 的 Docker 管理功能。不需要该功能时可以移除这一行，但容器、Compose、镜像与网络页面将无法连接宿主机 Docker。
 
 > [!CAUTION]
-> 挂载 Docker Socket 后，M·Desk 将拥有较高的宿主机控制权限。请只运行可信镜像，限制管理入口的访问范围，并妥善保护管理密码与访问链路。
+> 挂载 Docker Socket 后，M•Desk 将拥有较高的宿主机控制权限。请只运行可信镜像，限制管理入口的访问范围，并妥善保护管理密码与访问链路。
 
 #### Docker Run
 
@@ -245,7 +245,7 @@ Docker 管理需要挂载 Docker Socket。文件管理与终端默认只看到�
 
 ### fnOS 安装包
 
-1. 从 [Releases](https://github.com/IMGZCQ/MDesk/releases) 下载最新的 `MDesk_2.7.150.fpk`。
+1. 从 [Releases](https://github.com/IMGZCQ/MDesk/releases) 下载最新的 `MDesk_2.8.0.fpk`。
 2. 在 fnOS 应用中心手动安装。
 3. 安装过程中可选择 HTTP 或 HTTPS，默认使用 HTTP 和 `19188` 端口。
 4. 安装完成后访问 `http://<设备地址>:19188/@admin`，首次访问时设置管理密码。
@@ -274,13 +274,22 @@ MDesk 使用手册.md      用户使用、部署与参数说明
 官网源码由本地 `www/` 目录维护，可以直接部署为静态站点。页面包含项目介绍、核心能力、优势说明、部署概览与响应式布局，所有文案均在 `www/index.html` 中维护；发布仓库不包含该目录。
 
 > [!CAUTION]
-> M·Desk 的管理入口、终端与文件管理拥有较高权限。请使用强密码，优先通过 HTTPS、内网 ACL、VPN 或零信任网关访问，不要将管理入口直接暴露在不可信网络中。
+> M•Desk 的管理入口、终端与文件管理拥有较高权限。请使用强密码，优先通过 HTTPS、内网 ACL、VPN 或零信任网关访问，不要将管理入口直接暴露在不可信网络中。
 
 > [!NOTE]
 > 将管理入口改为自定义路径后，默认 `/@admin` 会释放为普通路径：绑定 Host 时按原路径反代或访问静态站点，否则进入默认代理链；旧路径不再执行登录、会话或管理页面逻辑，也不再附加管理专用 CSP、X-Frame-Options 或 no-store 响应头。`/@mdesk` 和 `/@app` 不可设置为管理入口。
 > 服务健康检查固定使用 `GET/HEAD /@mdesk/healthz`，与管理入口路径无关；一键安装脚本也使用该端点探测启动状态。
 
 ## 更新日志
+
+### 2.8.0
+
+- 用户可自定义上传、更换和删除头像，支持 PNG、JPEG、WebP 与 GIF。
+- 完善分享页的访问密码退出、公开资源缓存与页面布局，长文件名在分享目录和静态网站目录中显示更稳定。
+- 公开页面资源不再包含自定义管理入口信息，避免分享页和静态网站页泄露后台地址。
+- 优化系统状态中的服务与进程列表，使用虚拟行和流畅的拖动滚动，在实时刷新或调整窗口后保持当前位置，减少大列表卡顿。
+- 本机登录支持独立用户名输入，并记住最近使用的用户名。完善远程接管登录，适配多用户机制。
+- 完善桌面、分享窗口和系统信息的视觉细节与响应式布局。
 
 ### 2.7.150
 
@@ -465,7 +474,7 @@ MDesk 使用手册.md      用户使用、部署与参数说明
 - 修复窗口内的回车与空格键被桌面窗口层吞掉的问题，路由服务的域名输入框现在可以正常回车换行。
 - 补充多架构打包策略与商店按架构隐藏应用的说明。
 
-- 新增远程管理：登录页可直接输入另一台 M·Desk 服务器管理
+- 新增远程管理：登录页可直接输入另一台 M•Desk 服务器管理
 - 优化远程连接交互：失败时不再显示原始网络报错，断线时弹出遮罩提示层，提供重新连接与返回登录两个明确出口。
 - 修复远程接管时桌面壁纸显示不出来、应用中心图标全部裂成占位图的问题。
 - 修复桌面图标把主机地址固化进配置导致换入口打开就裂图的问题；自定义图标支持相对路径填写与校验，旧配置自动改写。
@@ -482,7 +491,7 @@ MDesk 使用手册.md      用户使用、部署与参数说明
 
 ### 2.7.109
 
-- 服务路由新增 Authorization 请求头桥接：M·Desk 部署在会覆写 `Authorization` 的上层网关或沙箱之后时可启用，认证头经 `X-MDesk-Authorization` 转存后由代理还原，上游登录态不再丢失；脚本按同源注入并兼容 CSP nonce，跳过 JSON 与压缩响应。
+- 服务路由新增 Authorization 请求头桥接：M•Desk 部署在会覆写 `Authorization` 的上层网关或沙箱之后时可启用，认证头经 `X-MDesk-Authorization` 转存后由代理还原，上游登录态不再丢失；脚本按同源注入并兼容 CSP nonce，跳过 JSON 与压缩响应。
 - 桌面“肥牛应用”入口与肥牛应用窗口改用飞牛 fnOS 官方图标。
 - 优化 MPK 应用启动诊断：应用在就绪前退出或启动超时时附带日志尾部，自动脱敏数据目录、过滤终端控制字符，并限制为最近 12 行、最多 4000 字符。
 - 优化服务识别中的 HTTP Basic 判定：支持多段 `WWW-Authenticate` 挑战并忽略引号内逗号，减少误判。
@@ -498,14 +507,14 @@ MDesk 使用手册.md      用户使用、部署与参数说明
 - 系统图标套装扩展至六套，完善图标切换、加载回退和设置持久化，桌面、标题栏、开始菜单与任务栏同步更新。
 - 重整系统状态磁盘导航与磁盘卡片布局，改善桌面和窄屏下的信息密度与可读性。
 - 更新内置 Chromium MPK 至 1.0.25，完善 Linux amd64 启动、重启和地址栏搜索。
-- 明确应用中心“M·Desk 原生应用”等分区标题，优化桌面与移动端显示。
+- 明确应用中心“M•Desk 原生应用”等分区标题，优化桌面与移动端显示。
 
 ### 2.7.107
 
 - Linux 一键安装脚本新增独立后台升级：`install.sh update` 与 `mdeskctl update` 可在 SSH 或内置终端断开后继续执行，并提供下载校验、服务重启、健康检查、失败回滚及升级状态与日志。
 - 完善 fnOS 应用接入：支持嵌套应用条目、多语言应用名与嵌套 CGI，正确转发登录会话、Cookie、重定向和错误页，并加强应用路径与脚本执行边界校验。
 - 优化端口服务识别与图标匹配：覆盖域名路由、虚拟主机、Docker 容器名、HTTP/HTTPS 回退及 IPv4/IPv6，并改进受限页面探测和身份匹配准确性。
-- 新增 Basic Auth 登录中转页，可直接在 M·Desk 内完成受保护服务认证，并校验登录后的跳转地址。
+- 新增 Basic Auth 登录中转页，可直接在 M•Desk 内完成受保护服务认证，并校验登录后的跳转地址。
 - 优化分享与静态目录浏览：长文件名不再撑破表格；管理页、分享页和状态页使用带版本号的应用图标，减少旧图标缓存。
 - 调整桌面窗口交互：改进最大化拖拽还原、标题栏边缘拖动和最小化操作边界，窗口状态恢复更稳定。
 
@@ -664,7 +673,7 @@ MDesk 使用手册.md      用户使用、部署与参数说明
 
 ### 2.6.56
 
-- 统一应用内“关于”、官网、README 与使用手册的产品定位：M·Desk 是面向 NAS、家庭实验室与小型团队的自托管桌面系统。
+- 统一应用内“关于”、官网、README 与使用手册的产品定位：M•Desk 是面向 NAS、家庭实验室与小型团队的自托管桌面系统。
 - 重新整理官网与文档的能力介绍，完整覆盖服务路由、终端、文件与媒体、外链分享、静态网站、FRPC / EasyTier / Cloudflare Tunnel、Docker 管理与系统状态。
 - 补充 Docker Socket 挂载、Compose 示例、GitHub Releases 更新检测与安全提示，并让仓库文档图片使用 GitHub 绝对地址。
 - 重新构建 Windows、Linux amd64、Linux arm64 与 fnOS 安装包，确保发布产物包含最新文案与文档同步内容。
