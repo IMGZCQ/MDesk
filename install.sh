@@ -127,6 +127,32 @@ MDesk Linux 安装、升级与卸载脚本
 EOF
 }
 
+# ---------- 终端展示增强 ----------
+print_banner() {
+  local info="${C_INFO}"
+  local reset="${C_RESET}"
+  if [ -t 1 ]; then
+    printf '%s' "${info}"
+  fi
+  printf '\n'
+  printf '        MDesk · 桌面图标服务\n'
+  printf '    安装 / 升级 / 卸载 一体化脚本\n'
+  printf '%s\n' "$(printf '%*s' 40 '' | tr ' ' '=')"
+  if [ -t 1 ]; then
+    printf '%s\n' "${reset}"
+  fi
+}
+
+section() {
+  local title="$1"
+  local width=46
+  local line=""
+  line="$(printf '%*s' "${width}" '' | tr ' ' '=')"
+  printf '\n%s\n' "${line}"
+  printf '  %s\n' "${title}"
+  printf '%s\n' "${line}"
+}
+
 require_root() {
   [ "$(id -u)" -eq 0 ] || die "请使用 root 权限运行：sudo bash $0"
 }
@@ -770,9 +796,55 @@ read_update_value() {
   sed -n "s/^${key}=//p" "${file}" 2>/dev/null | head -n 1
 }
 
+# 判断给定 PID 是否为 MDesk 升级 worker（后台进程由 install.sh --update-worker 启动）
+pid_is_update_worker() {
+  local pid="${1:-}"
+  local cmdline=""
+  case "${pid}" in
+    ''|*[!0-9]*) return 1 ;;
+  esac
+  kill -0 "${pid}" 2>/dev/null || return 1
+  cmdline="$(tr '\000' ' ' <"/proc/${pid}/cmdline" 2>/dev/null || true)"
+  case " ${cmdline} " in
+    *" --update-worker "*) return 0 ;;
+  esac
+  return 1
+}
+
+# 计算升级状态距离现在的秒数；无法解析时返回空
+status_age_seconds() {
+  local ts="$1"
+  local then=""
+  local now=""
+  [ -n "${ts}" ] || return 1
+  then="$(date -d "${ts}" +%s 2>/dev/null || true)"
+  [ -n "${then}" ] || return 1
+  now="$(date +%s 2>/dev/null || true)"
+  [ -n "${now}" ] || return 1
+  printf '%s' "$(( now - then ))"
+}
+
+# 清理过期/无效的升级锁，避免脏锁永久阻塞后续升级
+clear_update_lock() {
+  local reason="${1:-stale}"
+  rm -f "${UPDATE_STATUS_FILE}" 2>/dev/null || true
+  if command -v systemctl >/dev/null 2>&1 && [ -f "${UPDATER_UNIT_FILE}" ]; then
+    systemctl stop "${UPDATER_UNIT}" >/dev/null 2>&1 || true
+    systemctl reset-failed "${UPDATER_UNIT}" >/dev/null 2>&1 || true
+    rm -f "${UPDATER_UNIT_FILE}"
+    systemctl daemon-reload >/dev/null 2>&1 || true
+  fi
+  warn "检测到过期的升级锁（${reason}），已自动清除，可重新执行升级。"
+}
+
+readonly UPDATE_LOCK_MAX_AGE=1800   # 升级锁最大存活时间（秒），超过则强制清锁
+readonly UPDATE_STARTING_GRACE=60   # starting 阶段父进程交棒宽限（秒）
+
 update_in_progress() {
   local state=""
   local pid=""
+  local updated_at=""
+  local age=""
 
   state="$(read_update_value STATE || true)"
   case "${state}" in
@@ -780,6 +852,7 @@ update_in_progress() {
     *) return 1 ;;
   esac
 
+  # 1) systemd 升级单元确实在运行
   if command -v systemctl >/dev/null 2>&1 &&
      systemctl is-active --quiet "${UPDATER_UNIT}" 2>/dev/null; then
     return 0
@@ -789,7 +862,38 @@ update_in_progress() {
   case "${pid}" in
     ''|*[!0-9]*) return 1 ;;
   esac
-  kill -0 "${pid}" 2>/dev/null
+
+  # 2) 确认记录的 PID 真的是 MDesk 升级 worker（防止 PID 复用误判）
+  if pid_is_update_worker "${pid}"; then
+    return 0
+  fi
+
+  # 3) 进程还活着，但不是升级 worker
+  if kill -0 "${pid}" 2>/dev/null; then
+    # starting 阶段父进程尚未把 PID 交棒给 worker，给予短暂宽限避免误放行
+    if [ "${state}" = "starting" ]; then
+      updated_at="$(read_update_value UPDATED_AT || true)"
+      age="$(status_age_seconds "${updated_at}" || true)"
+      if [ -z "${age}" ] || [ "${age}" -lt "${UPDATE_STARTING_GRACE}" ]; then
+        return 0
+      fi
+    fi
+    # 存活但身份无法确认（多为 PID 复用）：若锁已超时则强制清锁放行
+    updated_at="$(read_update_value UPDATED_AT || true)"
+    age="$(status_age_seconds "${updated_at}" || true)"
+    if [ -z "${age}" ] || [ "${age}" -ge "${UPDATE_LOCK_MAX_AGE}" ]; then
+      clear_update_lock "升级锁超时且进程状态无法确认"
+    fi
+    return 1
+  fi
+
+  # 4) 记录的进程已死，但状态仍停留在 starting/running —— 不一致的脏锁
+  updated_at="$(read_update_value UPDATED_AT || true)"
+  age="$(status_age_seconds "${updated_at}" || true)"
+  if [ -z "${age}" ] || [ "${age}" -ge "${UPDATE_LOCK_MAX_AGE}" ]; then
+    clear_update_lock "进程已退出但状态未更新"
+  fi
+  return 1
 }
 
 prepare_update_job() {
@@ -1603,9 +1707,52 @@ update_value() {
   sed -n "s/^${key}=//p" "${UPDATE_STATUS_FILE}" 2>/dev/null | head -n 1
 }
 
+pid_is_update_worker() {
+  local pid="${1:-}"
+  local cmdline=""
+  case "${pid}" in
+    ''|*[!0-9]*) return 1 ;;
+  esac
+  kill -0 "${pid}" 2>/dev/null || return 1
+  cmdline="$(tr '\000' ' ' <"/proc/${pid}/cmdline" 2>/dev/null || true)"
+  case " ${cmdline} " in
+    *" --update-worker "*) return 0 ;;
+  esac
+  return 1
+}
+
+status_age_seconds() {
+  local ts="${1:-}"
+  local then=""
+  local now=""
+  [ -n "${ts}" ] || return 1
+  then="$(date -d "${ts}" +%s 2>/dev/null || true)"
+  [ -n "${then}" ] || return 1
+  now="$(date +%s 2>/dev/null || true)"
+  [ -n "${now}" ] || return 1
+  printf '%s' "$(( now - then ))"
+}
+
+clear_update_lock() {
+  local reason="${1:-stale}"
+  rm -f "${UPDATE_STATUS_FILE}" 2>/dev/null || true
+  if command -v systemctl >/dev/null 2>&1 && [ -f "${UPDATER_UNIT_FILE}" ]; then
+    systemctl stop "${UPDATER_UNIT}" >/dev/null 2>&1 || true
+    systemctl reset-failed "${UPDATER_UNIT}" >/dev/null 2>&1 || true
+    rm -f "${UPDATER_UNIT_FILE}"
+    systemctl daemon-reload >/dev/null 2>&1 || true
+  fi
+  echo "[警告] 检测到过期的升级锁（${reason}），已自动清除，可重新执行升级。" >&2
+}
+
+UPDATE_LOCK_MAX_AGE=1800
+UPDATE_STARTING_GRACE=60
+
 update_in_progress() {
   local state=""
   local pid=""
+  local updated_at=""
+  local age=""
 
   state="$(update_value STATE || true)"
   case "${state}" in
@@ -1620,7 +1767,30 @@ update_in_progress() {
   case "${pid}" in
     ''|*[!0-9]*) return 1 ;;
   esac
-  kill -0 "${pid}" 2>/dev/null
+  if pid_is_update_worker "${pid}"; then
+    return 0
+  fi
+  if kill -0 "${pid}" 2>/dev/null; then
+    if [ "${state}" = "starting" ]; then
+      updated_at="$(update_value UPDATED_AT || true)"
+      age="$(status_age_seconds "${updated_at}" || true)"
+      if [ -z "${age}" ] || [ "${age}" -lt "${UPDATE_STARTING_GRACE}" ]; then
+        return 0
+      fi
+    fi
+    updated_at="$(update_value UPDATED_AT || true)"
+    age="$(status_age_seconds "${updated_at}" || true)"
+    if [ -z "${age}" ] || [ "${age}" -ge "${UPDATE_LOCK_MAX_AGE}" ]; then
+      clear_update_lock "升级锁超时且进程状态无法确认"
+    fi
+    return 1
+  fi
+  updated_at="$(update_value UPDATED_AT || true)"
+  age="$(status_age_seconds "${updated_at}" || true)"
+  if [ -z "${age}" ] || [ "${age}" -ge "${UPDATE_LOCK_MAX_AGE}" ]; then
+    clear_update_lock "进程已退出但状态未更新"
+  fi
+  return 1
 }
 
 show_update_status() {
@@ -2165,7 +2335,8 @@ install_flow() {
     OLD_CONFIG_EXISTS="no"
   fi
 
-  printf '\n%s\n' "=== ${APP_NAME} 安装向导 ==="
+  print_banner
+  section "${APP_NAME} 安装向导"
   prompt_read_into input "监听端口 [默认 ${default_port}]: " || input=""
   input="$(trim "${input}")"
   PORT="${input:-${default_port}}"
@@ -2241,7 +2412,7 @@ uninstall_flow() {
   load_existing_config
   [ -n "${SERVICE_MODE}" ] || SERVICE_MODE="$(detect_service_mode)"
 
-  printf '\n%s\n' "=== ${APP_NAME} 卸载向导 ==="
+  section "${APP_NAME} 卸载向导"
   info "安装路径：${INSTALL_DIR}"
   info "用户数据：${DATA_DIR}"
 
@@ -2295,21 +2466,35 @@ installed_menu() {
   load_existing_config
   [ -n "${SERVICE_MODE}" ] || SERVICE_MODE="$(detect_service_mode)"
 
-  printf '\n检测到 %s 已安装。\n' "${APP_NAME}"
-  printf '  安装路径：%s\n' "${INSTALL_DIR}"
-  printf '  监听端口：%s\n' "${PORT}"
-  printf '  服务模式：%s\n\n' "$(service_mode_label "${SERVICE_MODE}")"
-  printf '  1) 重新安装或升级（保留用户数据）\n'
-  printf '  2) 卸载\n'
-  printf '  3) 退出\n'
+  print_banner
   while true; do
+    printf '\n检测到 %s 已安装。\n' "${APP_NAME}"
+    printf '  安装路径：%s\n' "${INSTALL_DIR}"
+    printf '  监听端口：%s\n' "${PORT}"
+    printf '  服务模式：%s\n\n' "$(service_mode_label "${SERVICE_MODE}")"
+    printf '  1) 重新安装或升级（保留用户数据）\n'
+    printf '  2) 重启服务\n'
+    printf '  3) 卸载\n'
+    printf '  4) 退出\n'
     prompt_read_into choice "请选择 [1]: " || choice=""
     choice="$(trim "${choice}")"
     choice="${choice:-1}"
     case "${choice}" in
       1) install_flow; return 0 ;;
-      2) uninstall_flow; return 0 ;;
-      3) info "已退出。"; return 0 ;;
+      2)
+        if update_in_progress; then
+          warn "升级任务正在进行中，暂不建议重启，请稍后再试。"
+          continue
+        fi
+        info "正在重启 ${APP_NAME} 服务…"
+        if service_restart; then
+          success "${APP_NAME} 服务已重启。"
+        else
+          warn "${APP_NAME} 服务重启失败，请检查服务状态。"
+        fi
+        ;;
+      3) uninstall_flow; return 0 ;;
+      4) info "已退出。"; return 0 ;;
       *) warn "无效选择：${choice}，请重新输入。" ;;
     esac
   done
