@@ -4,7 +4,7 @@
 
 <h1 align="center">M•Desk</h1>
 
-<p align="center">高效轻便的服务器运维桌面系统</p>
+<p align="center">新一代轻量服务器的桌面管理系统</p>
 
 <p align="center">
   <a href="https://github.com/IMGZCQ/MDesk/releases">下载</a>
@@ -29,7 +29,7 @@
   <img src="./desktop-overview-dark.webp" alt="M•Desk 深色主题桌面界面" width="49%">
 </p>
 
-M•Desk 一个高效轻便的服务器运维桌面系统；集结反代服务、本地终端、组网穿透、分享收集、静态网站、文件和 Docker 管理等服务；所有服务都基于单一端口实现，享受极致的管理体验！
+M•Desk 是新一代轻量服务器的桌面管理系统；集结反代服务、本地终端、组网穿透、分享收集、静态网站、文件和 Docker 管理等服务；所有服务都基于单一端口实现，享受极致的管理体验！
 
 ## 快速入口
 
@@ -71,7 +71,7 @@ M•Desk 一个高效轻便的服务器运维桌面系统；集结反代服务�
 | Linux amd64 | `MDesk-linux-amd64` | 适用于常见 x86_64 设备 |
 | Linux arm64 | `MDesk-linux-arm64` | 适用于 ARM64 设备 |
 | Linux armv7 | `MDesk-linux-armv7` | 适用于 32 位 ARMv7 设备 |
-| fnOS | `MDesk_2.8.0.fpk` | 支持 amd64 与 arm64 |
+| fnOS | `MDesk_2.8.1.fpk` | 支持 amd64 与 arm64 |
 
 ### Linux 命令行
 
@@ -245,7 +245,7 @@ Docker 管理需要挂载 Docker Socket。文件管理与终端默认只看到�
 
 ### fnOS 安装包
 
-1. 从 [Releases](https://github.com/IMGZCQ/MDesk/releases) 下载最新的 `MDesk_2.8.0.fpk`。
+1. 从 [Releases](https://github.com/IMGZCQ/MDesk/releases) 下载最新的 `MDesk_2.8.1.fpk`。
 2. 在 fnOS 应用中心手动安装。
 3. 安装过程中可选择 HTTP 或 HTTPS，默认使用 HTTP 和 `19188` 端口。
 4. 安装完成后访问 `http://<设备地址>:19188/@admin`，首次访问时设置管理密码。
@@ -281,6 +281,18 @@ MDesk 使用手册.md      用户使用、部署与参数说明
 > 服务健康检查固定使用 `GET/HEAD /@mdesk/healthz`，与管理入口路径无关；一键安装脚本也使用该端点探测启动状态。
 
 ## 更新日志
+
+### 2.8.1
+
+- 完善飞牛应用中心、桌面快捷方式及飞牛音乐等特殊应用入口，兼容不同访问方式，并修正切换入口、深层链接及应用停用或删除后的访问处理。
+- 飞牛应用登录状态与 M·Desk 会话相互隔离，应用登录失效时显示正确提示，不再误清 M·Desk 登录状态。
+- 本机登录支持独立用户名输入并记住最近使用账号；远程接管支持独立目标用户名，完善多用户权限、断线重连和退出状态处理。
+- 用户可自定义上传、更换和删除头像，支持 PNG、JPEG、WebP 与 GIF。
+- 完善分享页的访问密码退出、公开资源缓存与页面布局，长文件名在分享目录和静态网站目录中显示更稳定。
+- 公开页面资源不再包含自定义管理入口信息；统一浏览器 404、401、403 提示页，API、脚本、图片和下载请求继续返回 JSON 或原有响应。
+- 优化系统状态中的服务和进程列表，保持拖动滚动位置；进程详情新增监听端口及 PID、端口筛选，补充指标不可见原因，并加强关键进程终止保护。
+- 完善桌面、分享窗口和系统信息的视觉及响应式布局，桌面监控小组件默认以展开状态显示。
+- 完善音乐播放器歌词选项卡的空状态提示，避免重复显示空白状态。
 
 ### 2.8.0
 
@@ -652,7 +664,7 @@ MDesk 使用手册.md      用户使用、部署与参数说明
 
 ### 2.7.59
 
-- 统一产品定位为“高效轻便的服务器运维桌面系统”，同步网站、README、使用手册与 fnOS 清单。
+- 统一产品定位为“新一代轻量服务器的桌面管理系统”，同步网站、README、使用手册与 fnOS 清单。
 - 更新官网首页 Dashboard 展示图，完善桌面系统的视觉呈现。
 - 校准 Cloudflare 隧道说明：命名隧道用于固定入口，快捷隧道由 Cloudflare 分配临时 `*.trycloudflare.com` 公开地址，适合快速验证。
 - 重新构建 Windows、Linux amd64、Linux arm64 与 fnOS 安装包。
@@ -673,7 +685,7 @@ MDesk 使用手册.md      用户使用、部署与参数说明
 
 ### 2.6.56
 
-- 统一应用内“关于”、官网、README 与使用手册的产品定位：M•Desk 是面向 NAS、家庭实验室与小型团队的自托管桌面系统。
+- 统一应用内“关于”、官网、README 与使用手册的产品定位：M•Desk 是新一代轻量服务器的桌面管理系统。
 - 重新整理官网与文档的能力介绍，完整覆盖服务路由、终端、文件与媒体、外链分享、静态网站、FRPC / EasyTier / Cloudflare Tunnel、Docker 管理与系统状态。
 - 补充 Docker Socket 挂载、Compose 示例、GitHub Releases 更新检测与安全提示，并让仓库文档图片使用 GitHub 绝对地址。
 - 重新构建 Windows、Linux amd64、Linux arm64 与 fnOS 安装包，确保发布产物包含最新文案与文档同步内容。
