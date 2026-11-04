@@ -36,6 +36,7 @@ M•Desk 是新一代轻量服务器的桌面管理系统；集结反代服务�
 | 入口 | 说明 |
 | --- | --- |
 | [下载最新版本](https://github.com/IMGZCQ/MDesk/releases) | 获取对应平台安装包与可执行文件 |
+| [Windows 连接管理器](https://github.com/IMGZCQ/MDesk/releases) | 集中保存并切换多个远程 M•Desk；它是独立客户端，不是服务端部署方式 |
 | [完整使用手册](./MDesk%20使用手册.md) | 模块操作、部署方式与启动参数 |
 | [问题反馈](https://github.com/IMGZCQ/MDesk/issues) | 提交问题、建议与使用反馈 |
 
@@ -57,6 +58,7 @@ M•Desk 是新一代轻量服务器的桌面管理系统；集结反代服务�
 | **系统状态** | 集中展示系统与硬件信息、硬盘和 SMART 健康、网络接口与流量、CPU、内存、GPU 与资源趋势，网络总览新增公网 IP 与归属地；后台统一采样记录 CPU、内存、GPU、网络和磁盘读写趋势。新增系统服务管理，可查看 systemd 与 Windows 服务的运行状态和启动类型，支持搜索、筛选、排序、详情、启停、重启及开机启动调整，并对并发操作、权限限制和平台不支持项提供明确反馈。Linux 支持 Swap 路径、类型、容量与使用率查看，并可调节虚拟内存使用倾向、安全启停和调整单个 Swap 文件容量。服务列表实时刷新时保持当前滚动位置。 |
 | **多用户与权限** | 管理员可在系统设置中创建普通用户，为成员配置账号状态、可用能力、多个授权目录、目录权限、存储配额和应用访问策略；普通用户的偏好、壁纸、收藏、任务、分享和终端会话相互隔离，受限功能会显示明确提示。 |
 | **系统设置与个性化** | 新增独立“界面外观”设置，提供经典、紧凑、宽松三种尺寸密度，以及经典、Win11、macOS、霓虹、终端控制台、纸面工作台六种界面风格，选择即时生效并自动保存。系统设置另提供八套应用图标套装，包含 V8“极简风格”，可切换桌面图标单击或双击打开；支持指定独立壁纸目录，也可拖放或批量上传 JPG、PNG、GIF、WebP 壁纸并立即刷新列表。窗口按桌面可用工作区进行最大化、分屏、拖拽与缩放，兼容悬浮任务栏，窗口焦点、吸附状态和后台刷新策略会随桌面操作平滑调整；应用中心安装或卸载应用时自动同步桌面图标。 |
+| **Windows 连接管理器** | 独立 Windows 客户端，可集中保存不限数量的远程 M•Desk，并最多同时打开 8 个会话；支持 PIN 与自动锁定、收藏搜索、拖动排序、连接状态与资源指标。远程密码可选择交由 Windows Credential Manager 保存，自签名证书可通过 SPKI SHA-256 指纹确认信任。 |
 
 ---
 
@@ -66,12 +68,13 @@ M•Desk 是新一代轻量服务器的桌面管理系统；集结反代服务�
 
 | 平台 | 文件 | 说明 |
 | --- | --- | --- |
-| Windows 服务版 | `MDesk-Windows-Service.exe` | 在后台提供管理服务，适合长期运行 |
-| Windows 桌面版 | `MDesk-Windows-Desktop.exe` | 使用桌面窗口承载管理界面 |
+| Windows 服务版 | `MDesk-Windows-服务版.exe` | 在后台提供管理服务，适合长期运行 |
+| Windows 桌面版 | `MDesk-Windows-桌面版.exe` | 使用桌面窗口承载管理界面 |
+| Windows 连接管理器 | `MDesk管理器.exe` | 独立远程客户端，用于集中管理多个远程 M•Desk，不是服务端 |
 | Linux amd64 | `MDesk-linux-amd64` | 适用于常见 x86_64 设备 |
 | Linux arm64 | `MDesk-linux-arm64` | 适用于 ARM64 设备 |
 | Linux armv7 | `MDesk-linux-armv7` | 适用于 32 位 ARMv7 设备 |
-| fnOS | `MDesk_2.8.1.fpk` | 支持 amd64 与 arm64 |
+| fnOS | `MDesk_2.8.2.fpk` | 支持 amd64 与 arm64 |
 
 ### Linux 命令行
 
@@ -245,10 +248,22 @@ Docker 管理需要挂载 Docker Socket。文件管理与终端默认只看到�
 
 ### fnOS 安装包
 
-1. 从 [Releases](https://github.com/IMGZCQ/MDesk/releases) 下载最新的 `MDesk_2.8.1.fpk`。
+1. 从 [Releases](https://github.com/IMGZCQ/MDesk/releases) 下载最新的 `MDesk_2.8.2.fpk`。
 2. 在 fnOS 应用中心手动安装。
 3. 安装过程中可选择 HTTP 或 HTTPS，默认使用 HTTP 和 `19188` 端口。
 4. 安装完成后访问 `http://<设备地址>:19188/@admin`，首次访问时设置管理密码。
+
+### Windows 连接管理器（独立客户端）
+
+`MDesk管理器.exe` 是独立的 Windows 远程管理客户端，不是 M•Desk 服务端，也不是第六种部署方式。它适合在 Windows 电脑上集中保存和切换多台远程 M•Desk：
+
+- 保存目标数量不限，最多同时打开 8 个远程会话；支持收藏、搜索、拖动排序和系统托盘。
+- 提供本机 PIN、自动锁定、连接状态与资源指标；远程密码可选择保存到 Windows Credential Manager。
+- HTTPS 使用正常证书校验，自签名证书可通过 SPKI SHA-256 指纹明确确认信任。
+- 每个目标使用独立的 Cookie 与 Web Storage；Bearer Token 只保留在管理器进程内存中。
+- 运行环境为 Windows 10/11 x64，并需要 Microsoft Edge WebView2 Evergreen Runtime。
+
+从 [Releases](https://github.com/IMGZCQ/MDesk/releases) 下载 `MDesk管理器.exe` 后直接运行。完整说明见 [使用手册的连接管理器章节](./MDesk%20使用手册.md#connection-manager)。
 
 服务路由、终端、文件管理、分享收集、静态网站、组网隧道、Docker、进程管理与系统状态的详细操作，请查看 [MDesk 使用手册](./MDesk%20使用手册.md)。
 
@@ -282,8 +297,17 @@ MDesk 使用手册.md      用户使用、部署与参数说明
 
 ## 更新日志
 
+### 2.8.2
+
+- Windows 版 M•Desk 连接管理器更新至 0.1.2，可集中保存不限数量的远程 M•Desk，最多同时连接 8 个，并支持收藏、搜索、拖动排序和连接状态检测。
+- 连接管理器支持本机 PIN 与自动锁定；远程密码可选择保存至 Windows Credential Manager，并为每个远程目标隔离 Cookie 与 Web Storage。
+- 连接管理器支持通过 SPKI SHA-256 指纹确认自签名证书，方便在证书变更时核对连接目标。
+- 统一 Windows 发布文件名称：服务版为 `MDesk-Windows-服务版.exe`，桌面版为 `MDesk-Windows-桌面版.exe`，连接管理器为 `MDesk管理器.exe`。
+- 同步更新网站下载入口、使用文档、构建脚本及发布流程中的文件名和连接管理器介绍。
+
 ### 2.8.1
 
+- 新增 Windows 版 M•Desk 连接管理器，可集中保存并切换多个远程 M•Desk，最多同时连接 8 个；支持 PIN 解锁、自动锁定、收藏搜索、拖动排序、连接状态与资源指标，远程密码可交由 Windows Credential Manager 保存。
 - 完善飞牛应用中心、桌面快捷方式及飞牛音乐等特殊应用入口，兼容不同访问方式，并修正切换入口、深层链接及应用停用或删除后的访问处理。
 - 飞牛应用登录状态与 M·Desk 会话相互隔离，应用登录失效时显示正确提示，不再误清 M·Desk 登录状态。
 - 本机登录支持独立用户名输入并记住最近使用账号；远程接管支持独立目标用户名，完善多用户权限、断线重连和退出状态处理。
