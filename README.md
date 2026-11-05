@@ -37,32 +37,62 @@ M•Desk 是新一代轻量服务器的桌面管理系统；集结反代服务�
 | --- | --- |
 | [下载最新版本](https://github.com/IMGZCQ/MDesk/releases) | 获取对应平台安装包与可执行文件 |
 | [Windows 连接管理器](https://github.com/IMGZCQ/MDesk/releases) | 集中保存并切换多个远程 M•Desk；它是独立客户端，不是服务端部署方式 |
-| [完整使用手册](./MDesk%20使用手册.md) | 模块操作、部署方式与启动参数 |
+| [完整使用手册](./MDesk%20使用手册.md) | 模块操作、部署方式、运行维护与故障排查 |
+| [部署方式比较](https://github.com/IMGZCQ/MDesk#deployment-matrix) | 选择 Linux 一键安装、手动运行、Docker、Windows 或 fnOS FPK |
+| [开发文档](https://github.com/IMGZCQ/MDesk/tree/main/docs) | MPK 应用包规范与开发者资料 |
 | [问题反馈](https://github.com/IMGZCQ/MDesk/issues) | 提交问题、建议与使用反馈 |
 
 ---
 
 ## 核心能力
 
+### 11 个核心模块
+
 | 模块 | 说明 |
 | --- | --- |
 | **服务路由** | 统一管理多个服务入口，支持域名绑定与快速切换，各服务保持原有访问路径；桌面图标可从 Web Manifest、`srcset`、JSON-LD 与页面图像中自动识别，并支持桌面资源上传与安全校验。 |
-| **应用中心与 fnOS 接入** | 应用中心按 M•Desk 原生应用、1Panel 源与 CasaOS 源清晰分区，安装、升级与卸载弹窗显示真实应用图标，详情分列作者和开发者；三方订阅源支持名称自动获取和地址协议自动补全。应用中心来源的桌面图标右键可打开应用信息。扫描 fnOS 应用中心，将端口、Unix Socket 与 CGI 应用接入桌面，支持应用图标、版本、访问入口与安全路径校验。MPK 图标按文件内容校验，持续完善应用包规范与非 fnOS 环境兼容性。 |
+| **fnOS 应用接入** | 扫描 fnOS 应用中心，将端口、Unix Socket 与 CGI 应用接入桌面，支持应用图标、版本、访问入口与安全路径校验；代理兼容常见入口路径，并处理 Cookie、Session Token、Location、错误页与路径重写。 |
+| **应用中心** | 按 M•Desk 原生应用、1Panel 源与 CasaOS 源清晰分区，安装、升级与卸载弹窗显示真实应用图标，详情分列作者和开发者；三方订阅源支持名称自动获取和地址协议自动补全，应用来源的桌面图标可打开应用信息。MPK 图标按文件内容校验，应用包规范持续完善并兼顾非 fnOS 环境。 |
 | **本地终端** | 浏览器中的多会话终端，支持后台保活、快捷命令与右键菜单操作；快捷命令内容使用默认两行、可垂直拖拽的多行输入框；文件管理空白区右键可打开终端并自动定位当前目录。常见 POSIX 环境优先使用 Bash，同时保留 Zsh 等显式 shell 选择。 |
 | **文件管理** | 在线浏览、编辑、上传下载、压缩解压；侧栏通过“目录 / 收藏 / 已打开”标签切换，目录支持双击展开和收起，工具栏图标统一为 `34×34` 按钮与 `28×28` 图标。支持多窗口与同目录窗口复用，每个窗口独立保存路径、选择、排序和视图状态，文件操作仅刷新受影响窗口，`F5` 刷新当前激活窗口。复制、移动和上传冲突支持跳过、覆盖或保留两者；目录冲突递归合并，跨分区移动会先校验副本再删除源文件。编辑器支持多文件独立编辑与未保存内容确认。上传、下载、复制和移动任务集中进入统一任务中心；支持右键菜单、框选、直接创建分享收集，以及图片、音视频和文本预览；音频播放器支持封面、歌曲信息、播放列表、歌词、搜索、随机与循环播放。列表与图标视图按需懒加载图片缩略图；图片支持左右滑动或相册前后切换并循环浏览、缩放平移和键盘操作，相邻图片预加载并兼容 HEIC；视频支持桌面与公开分享页共用的触控手势。 |
 | **分享收集** | 支持分享、收集和“都要”三种模式：分享用于浏览下载，收集仅提供访客上传区，“都要”同时开放两者；收集模式支持 `1 MB` 至 `100 GB` 单文件上限、超限提示与同名文件自动重命名，仅单个实际目录可启用。管理员可设置上传文件后缀白名单或黑名单，默认阻止可执行文件、脚本等高风险文件直接上传。分享管理列表直接显示分享地址，编辑带密码的分享时可以查看已保存的访问密码。目录页可切换列表与图标视图，图标和文件名均可打开预览且间距紧凑，并可选择当前页条目打包下载。分享登录会话具有有效期，在退出、密码或安全设置变化后立即失效；音频与歌词请求继续受分享权限保护并支持分段读取。 |
 | **静态网站** | 选择一个本地目录即可发布为静态网站，支持默认主页、目录浏览与域名绑定；目录页支持列表与图标视图，站点中的图片、音视频和文本资源可直接预览；音频播放器支持播放列表、歌词、搜索、随机与循环播放。 |
 | **组网隧道** | 支持 FRPC、FRPS、EasyTier 与 Cloudflare Tunnel，并可分别管理多个实例；FRP 服务端与客户端共用下载和校验流程，Cloudflare 的命名隧道与临时隧道使用更清晰的单选方式。 |
 | **Docker 管理** | 管理容器、Compose 项目、本地镜像、镜像仓库、Docker 网络与镜像加速器；支持按镜像、Compose 服务或容器逐项检测更新、拉取新镜像并重建服务，也支持重启 Docker 服务。 |
-| **进程管理** | 查看真实进程列表、PID、用户、状态、CPU、内存、启动时间与可执行路径；支持搜索、端口反查、排序筛选、详情与安全结束进程。进程、服务与端口长列表支持在空白区域拖动滚动，同时保留按钮、下拉选择与右键菜单操作；后台轮询采用局部刷新，搜索框、光标位置和展开中的下拉框不会被打断。 |
-| **系统状态** | 集中展示系统与硬件信息、硬盘和 SMART 健康、网络接口与流量、CPU、内存、GPU 与资源趋势，网络总览新增公网 IP 与归属地；后台统一采样记录 CPU、内存、GPU、网络和磁盘读写趋势。新增系统服务管理，可查看 systemd 与 Windows 服务的运行状态和启动类型，支持搜索、筛选、排序、详情、启停、重启及开机启动调整，并对并发操作、权限限制和平台不支持项提供明确反馈。Linux 支持 Swap 路径、类型、容量与使用率查看，并可调节虚拟内存使用倾向、安全启停和调整单个 Swap 文件容量。服务列表实时刷新时保持当前滚动位置。 |
+| **进程与端口管理** | 查看真实进程列表、PID、用户、状态、CPU、内存、启动时间与可执行路径；支持名称或路径搜索、精确 PID、端口反查、排序筛选、详情、复制、打开目录与安全结束进程。端口页汇总 TCP 监听与 UDP 绑定，可识别 Docker 映射、查看归属进程、复制信息、发送到桌面、打开服务或创建服务路由。进程、服务与端口长列表支持拖动滚动，同时保留按钮、下拉选择与右键菜单操作；后台轮询采用局部刷新，不打断搜索框、光标位置和展开中的下拉框。 |
+| **系统状态** | 集中展示系统与硬件信息、硬盘和 SMART 健康、网络接口与流量、CPU、内存、GPU 与资源趋势，网络总览提供公网 IP 与归属地；后台统一采样记录 CPU、内存、GPU、网络和磁盘读写趋势。系统服务管理可查看 systemd 与 Windows 服务的运行状态和启动类型，支持搜索、筛选、排序、详情、启停、重启及开机启动调整，并对并发操作、权限限制和平台不支持项提供明确反馈。Linux 支持 Swap 路径、类型、容量与使用率查看，并可调节虚拟内存使用倾向、安全启停和调整单个 Swap 文件容量。 |
+
+### 跨模块能力
+
+| 能力 | 说明 |
+| --- | --- |
 | **多用户与权限** | 管理员可在系统设置中创建普通用户，为成员配置账号状态、可用能力、多个授权目录、目录权限、存储配额和应用访问策略；普通用户的偏好、壁纸、收藏、任务、分享和终端会话相互隔离，受限功能会显示明确提示。 |
-| **系统设置与个性化** | 新增独立“界面外观”设置，提供经典、紧凑、宽松三种尺寸密度，以及经典、Win11、macOS、霓虹、终端控制台、纸面工作台六种界面风格，选择即时生效并自动保存。系统设置另提供八套应用图标套装，包含 V8“极简风格”，可切换桌面图标单击或双击打开；支持指定独立壁纸目录，也可拖放或批量上传 JPG、PNG、GIF、WebP 壁纸并立即刷新列表。窗口按桌面可用工作区进行最大化、分屏、拖拽与缩放，兼容悬浮任务栏，窗口焦点、吸附状态和后台刷新策略会随桌面操作平滑调整；应用中心安装或卸载应用时自动同步桌面图标。 |
+| **系统设置与个性化** | 提供经典、紧凑、宽松三种尺寸密度，以及经典、Win11、macOS、霓虹、终端控制台、纸面工作台六种界面风格，选择即时生效并自动保存。另提供八套应用图标套装，可切换桌面图标单击或双击打开；支持指定独立壁纸目录，也可拖放或批量上传 JPG、PNG、GIF、WebP 壁纸。窗口按桌面可用工作区进行最大化、分屏、拖拽与缩放，并兼容悬浮任务栏。 |
+| **远程接管** | 本机登录页可输入另一台 M•Desk 的地址与凭据直接接管远端桌面；远端 Token 只保留在服务端内存中，断线时提供明确状态与重连入口，并继续使用远端服务器已有的账号、权限和数据边界。 |
 | **Windows 连接管理器** | 独立 Windows 客户端，可集中保存不限数量的远程 M•Desk，并最多同时打开 8 个会话；支持 PIN 与自动锁定、收藏搜索、拖动排序、连接状态与资源指标。远程密码可选择交由 Windows Credential Manager 保存，自签名证书可通过 SPKI SHA-256 指纹确认信任。 |
+| **版本检测、升级与回滚** | 系统状态只提示可用版本与更新内容，不会自动下载、安装或替换程序。Linux 一键安装可通过 `sudo mdeskctl update` 执行带健康检查与失败回滚的后台升级；Docker、Windows 与 fnOS FPK 分别采用各自的升级流程。 |
+| **数据保留与卸载策略** | 卸载默认保留用户数据。只有明确选择彻底删除时，才会清理配置、凭据、收藏、分享记录与日志，且操作不可恢复；删除前应自行完成备份。 |
 
 ---
 
 ## 快速开始
+
+M•Desk 以 Linux 为主要运行环境，同时提供 Windows、Docker 与 fnOS FPK 部署方式。FPK 是面向飞牛 fnOS 的平台专用安装包，并非使用 M•Desk 的前提；其他 Linux 系统应优先使用一键安装脚本或独立二进制。
+
+<a id="deployment-matrix"></a>
+
+### 选择部署方式
+
+| 使用场景 | 推荐方式 | 首次设置管理密码的时机 |
+| --- | --- | --- |
+| 常见 Linux 服务器或 NAS | [Linux 一键安装](#linux-install) | 安装完成后首次打开管理入口 |
+| 需要自行控制运行参数或数据目录 | [Linux 独立二进制](#linux-binary) | 首次打开管理入口 |
+| 已有 Docker / Compose 环境 | [Docker Compose](#docker-compose) | 首次打开管理入口 |
+| Windows 长期运行或桌面使用 | [Windows 可执行文件](#windows) | 首次打开管理入口 |
+| 飞牛 fnOS | [fnOS FPK](#fnos-fpk) | FPK 安装向导中设置并确认 |
+
+> [!IMPORTANT]
+> Linux 一键安装、手动运行与 Docker 部署采用“首次访问管理入口时设置密码”的流程。FPK 安装向导会直接要求设置并确认管理员密码，两者不能混为一谈。
 
 ### 发布文件
 
@@ -74,9 +104,69 @@ M•Desk 是新一代轻量服务器的桌面管理系统；集结反代服务�
 | Linux amd64 | `MDesk-linux-amd64` | 适用于常见 x86_64 设备 |
 | Linux arm64 | `MDesk-linux-arm64` | 适用于 ARM64 设备 |
 | Linux armv7 | `MDesk-linux-armv7` | 适用于 32 位 ARMv7 设备 |
-| fnOS | `MDesk_2.8.2.fpk` | 支持 amd64 与 arm64 |
+| fnOS | `MDesk_2.8.3.fpk` | 支持 amd64 与 arm64 |
 
-### Linux 命令行
+<a id="linux-install"></a>
+
+### Linux 一键安装（推荐）
+
+一键安装适合大多数 Linux 服务器与 NAS。脚本会自动识别 `amd64`、`arm64` 或 `armv7`，优先从项目镜像下载对应二进制；镜像不可用时，再回退到 GitHub Release 加速线路。
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/IMGZCQ/MDesk/main/install.sh | sudo bash
+```
+
+安装时会依次询问：
+
+1. 服务端口，直接回车使用默认值 `19188`。
+2. 安装目录，直接回车使用默认值 `/opt/MDesk`。
+
+安装目录建议使用不含空格和特殊字符的路径。脚本会优先使用 systemd，并兼容 OpenRC、SysV；所选服务管理器注册、启动或健康检查失败时，会降级为独立后台进程。后台模式在 cron 可用时会注册 `@reboot` 启动；若系统同时没有 init 服务管理器和 cron，系统重启后需要手动执行 `sudo mdeskctl start`。
+
+安装完成后访问：
+
+```text
+http://<设备地址>:<端口>/@admin
+```
+
+首次打开管理入口时设置管理员密码。密码长度为 `8–128` 个字符，并且必须同时包含字母和数字。
+
+再次运行同一安装命令时，脚本会检测现有安装并显示管理菜单，可选择重新安装/升级、卸载或取消。也可以使用显式命令：
+
+```bash
+sudo bash install.sh install
+sudo bash install.sh update
+sudo bash install.sh uninstall
+```
+
+升级会交给独立后台任务执行，即使内置终端、SSH 会话或发起命令的终端断开，任务仍会继续。任务会下载并校验新二进制、重启服务并执行 HTTP 健康检查；失败时恢复旧二进制和配置。可使用以下命令查看状态：
+
+```bash
+sudo mdeskctl update
+sudo mdeskctl status
+```
+
+更新日志和最近状态分别保存在 `/etc/mdesk/update.log` 与 `/etc/mdesk/update.status`。卸载默认保留用户数据；只有在卸载向导中明确选择删除数据时，才会清理安装目录中的数据。
+
+如需强制使用某个服务模式，可设置 `MDESK_SERVICE_MODE`：
+
+```bash
+sudo env MDESK_SERVICE_MODE=systemd bash install.sh
+sudo env MDESK_SERVICE_MODE=openrc bash install.sh
+sudo env MDESK_SERVICE_MODE=sysv bash install.sh
+sudo env MDESK_SERVICE_MODE=process bash install.sh
+```
+
+如需指定 GitHub 加速地址，可使用英文逗号分隔多个地址，并支持 `{url}` 占位符：
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/IMGZCQ/MDesk/main/install.sh |
+  sudo env MDESK_GITHUB_PROXY='https://gh-proxy.com/,https://ghfast.top/' bash
+```
+
+<a id="linux-binary"></a>
+
+### Linux 独立二进制（手动运行）
 
 1. 从 [Releases](https://github.com/IMGZCQ/MDesk/releases) 下载匹配架构的 `MDesk-linux-amd64`、`MDesk-linux-arm64` 或 `MDesk-linux-armv7`。
 2. 将文件放到可写目录，确保同级目录能够创建 `data` 数据目录。
@@ -90,76 +180,30 @@ chmod +x ./MDesk-linux-amd64
 4. 默认监听 HTTP `19188` 端口，访问 `http://<设备地址>:19188/@admin`。
 5. 首次访问时设置管理密码。
 
-ARM64 设备请将文件名替换为 `MDesk-linux-arm64`，32 位 ARMv7 设备请使用 `MDesk-linux-armv7`。可通过启动参数调整访问协议、监听地址、数据目录、日志和组网配置，完整说明见 [MDesk 使用手册](./MDesk%20使用手册.md)。
+ARM64 设备请将文件名替换为 `MDesk-linux-arm64`，32 位 ARMv7 设备请使用 `MDesk-linux-armv7`。可通过启动参数调整访问协议、监听地址、数据目录、日志和组网配置；完整说明见 [MDesk 使用手册](./MDesk%20使用手册.md#deployment)。
 
-### Linux 一键安装（systemd / OpenRC / SysV）
+手动运行适合需要自行编写 systemd、OpenRC、容器编排或进程守护配置的环境。长期运行时，应由系统服务管理器负责开机启动、日志与异常重启。
 
-一键安装会自动识别 `amd64`、`arm64` 或 `armv7`。脚本会优先从 `https://fndesk.imcq.top/FPK/MDesk/` 下载对应二进制文件；如果该镜像不可用，再回退到 GitHub Release 的多个加速地址中选择可用且响应较快的线路。安装时会优先使用 systemd，并兼容 OpenRC、SysV；所选服务管理器注册、启动或健康检查失败时，会自动降级为独立后台进程。后台模式会在 cron 可用时注册 `@reboot` 启动；若系统同时没有 cron，后台进程仍可正常使用，但系统重启后需要手动执行 `sudo mdeskctl start`，这是缺少 init/服务管理器时的系统限制。
+<a id="windows"></a>
 
-```bash
-curl -fsSL https://raw.githubusercontent.com/IMGZCQ/MDesk/main/install.sh | sudo bash
-```
+### Windows
 
-再次运行同一命令时，脚本会先检测系统是否已经安装 MDesk：
+- `MDesk-Windows-服务版.exe`：在后台提供管理服务，适合长期运行。
+- `MDesk-Windows-桌面版.exe`：以桌面窗口承载管理界面，适合在 Windows 桌面直接使用。
 
-- 未安装时，直接进入安装向导。
-- 已安装时，显示管理菜单，可选择重新安装/升级、卸载或取消。
+首次打开管理入口时设置管理员密码。Windows 版与 Linux、Docker、fnOS 版本共用同一套数据目录结构与管理能力；如果使用进程管理之外的高级系统功能，仍会受到当前 Windows 权限和平台能力限制。
 
-也可以使用显式命令强制安装或卸载：
+#### Windows 连接管理器（独立客户端）
 
-```bash
-sudo bash install.sh install
-sudo bash install.sh uninstall
-```
+`MDesk管理器.exe` 是独立的 Windows 远程管理客户端，不是 M•Desk 服务端，也不是第六种部署方式。它适合在 Windows 电脑上集中保存和切换多台远程 M•Desk：
 
-安装向导会依次询问：
+- 保存目标数量不限，最多同时打开 8 个远程会话；支持收藏、搜索、拖动排序和系统托盘。
+- 提供本机 PIN、自动锁定、连接状态与资源指标；远程密码可选择保存到 Windows Credential Manager。
+- HTTPS 使用正常证书校验，自签名证书可通过 SPKI SHA-256 指纹明确确认信任。
+- 每个目标使用独立的 Cookie 与 Web Storage；Bearer Token 只保留在管理器进程内存中。
+- 运行环境为 Windows 10/11 x64，并需要 Microsoft Edge WebView2 Evergreen Runtime。
 
-1. 服务端口，直接回车使用默认值 `19188`
-2. 安装目录，直接回车使用默认值 `/opt/MDesk`
-
-安装目录建议使用不含空格和特殊字符的路径，例如 `/opt/MDesk`。
-
-安装完成后会按当前环境注册并启动服务，并在服务管理器或 cron 可用时设置为开机自动启动。管理后台地址为：
-
-```text
-http://<设备地址>:<端口>/@admin
-```
-
-如需强制使用某个服务模式，可设置 `MDESK_SERVICE_MODE`：
-
-```bash
-sudo env MDESK_SERVICE_MODE=systemd bash install.sh
-sudo env MDESK_SERVICE_MODE=openrc bash install.sh
-sudo env MDESK_SERVICE_MODE=sysv bash install.sh
-sudo env MDESK_SERVICE_MODE=process bash install.sh
-```
-
-升级或重新安装会交给独立后台任务执行，因此即使 MDesk 内置终端、SSH 会话或发起命令的终端断开，更新仍会继续。任务会下载并校验新二进制、重启服务并执行 HTTP 健康检查；失败时会恢复旧二进制和配置，如果原服务管理器仍无法启动，则会自动用后台进程恢复旧版本。可使用以下命令发起或查看更新：
-
-```bash
-sudo bash install.sh update
-sudo mdeskctl update
-sudo mdeskctl status
-```
-
-更新日志和最近状态分别保存在 `/etc/mdesk/update.log` 与 `/etc/mdesk/update.status`。
-
-卸载命令：
-
-```bash
-sudo mdeskctl uninstall
-```
-
-也可以使用本地脚本卸载：`sudo bash install.sh uninstall`。
-
-卸载向导会询问是否删除用户数据。默认保留数据；选择删除后，会清理安装目录中的数据。
-
-如需指定 GitHub 加速地址，可使用英文逗号分隔，并支持 `{url}` 占位符：
-
-```bash
-curl -fsSL https://raw.githubusercontent.com/IMGZCQ/MDesk/main/install.sh |
-  sudo env MDESK_GITHUB_PROXY='https://gh-proxy.com/,https://ghfast.top/' bash
-```
+从 [Releases](https://github.com/IMGZCQ/MDesk/releases) 下载 `MDesk管理器.exe` 后直接运行。完整说明见 [使用手册的连接管理器章节](./MDesk%20使用手册.md#connection-manager)。
 
 ### 常用启动参数
 
@@ -190,7 +234,9 @@ Docker 管理建议在 Docker 所在 Linux 宿主机上运行，并确保 M•De
 | `DOCKER_HOST` | 仅支持 `unix://...` 形式，暂不支持 TCP 连接 |
 | `DOCKER_DAEMON_CONFIG` | 自定义 Docker daemon 配置文件路径，默认 `/etc/docker/daemon.json` |
 
-### Docker 镜像
+<a id="docker-compose"></a>
+
+### Docker Compose / Docker Run
 
 GitHub Actions 会在发布 Release 时自动读取该 Release 的 `MDesk-linux-amd64`、`MDesk-linux-arm64` 与 `MDesk-linux-armv7` 资产，构建并推送 `linux/amd64`、`linux/arm64` 与 `linux/arm/v7` 多架构镜像到 Docker Hub：
 
@@ -246,26 +292,31 @@ Docker 管理需要挂载 Docker Socket。文件管理与终端默认只看到�
 
 仓库 Actions secrets 需要配置 `DOCKERHUB_TOKEN`，建议使用 Docker Hub 的 Read & Write access token。Release 发布会推送 `latest`、版本号和完整标签；也可以通过 `workflow_dispatch` 手动补发指定版本，版本号填写 `2.7.114` 或 `v2.7.114` 均可。
 
-### fnOS 安装包
+<a id="fnos-fpk"></a>
 
-1. 从 [Releases](https://github.com/IMGZCQ/MDesk/releases) 下载最新的 `MDesk_2.8.2.fpk`。
-2. 在 fnOS 应用中心手动安装。
-3. 安装过程中可选择 HTTP 或 HTTPS，默认使用 HTTP 和 `19188` 端口。
-4. 安装完成后访问 `http://<设备地址>:19188/@admin`，首次访问时设置管理密码。
+### fnOS FPK（平台专用）
 
-### Windows 连接管理器（独立客户端）
+1. 从 [Releases](https://github.com/IMGZCQ/MDesk/releases) 下载最新的 `MDesk_2.8.3.fpk`。
+2. 在 fnOS「应用中心」选择本地安装，上传 FPK 并打开安装向导。
+3. 设置访问端口、访问协议、管理员密码与密码确认。默认协议为 HTTP，默认端口为 `19188`。
+4. 安装完成后，从 fnOS 桌面或按安装时选择的协议和端口打开管理入口。FPK 安装向导已经建立管理员密码，不再走普通 Linux 部署的首次访问设密页面。
 
-`MDesk管理器.exe` 是独立的 Windows 远程管理客户端，不是 M•Desk 服务端，也不是第六种部署方式。它适合在 Windows 电脑上集中保存和切换多台远程 M•Desk：
+FPK 管理员密码长度为 `8–128` 个字符，并且必须同时包含字母和数字。重新安装 FPK 时会重新设置管理员密码，即使保留原有数据也会更新密码。
 
-- 保存目标数量不限，最多同时打开 8 个远程会话；支持收藏、搜索、拖动排序和系统托盘。
-- 提供本机 PIN、自动锁定、连接状态与资源指标；远程密码可选择保存到 Windows Credential Manager。
-- HTTPS 使用正常证书校验，自签名证书可通过 SPKI SHA-256 指纹明确确认信任。
-- 每个目标使用独立的 Cookie 与 Web Storage；Bearer Token 只保留在管理器进程内存中。
-- 运行环境为 Windows 10/11 x64，并需要 Microsoft Edge WebView2 Evergreen Runtime。
+安装完成后，可以在 fnOS 的 M•Desk 应用配置中修改访问协议与端口，但该配置入口不负责修改管理员密码。应用数据保存在共享 `data` 目录中；通过应用中心升级时保留现有数据。
 
-从 [Releases](https://github.com/IMGZCQ/MDesk/releases) 下载 `MDesk管理器.exe` 后直接运行。完整说明见 [使用手册的连接管理器章节](./MDesk%20使用手册.md#connection-manager)。
+卸载时默认保留数据。只有明确选择一并删除数据时，才会移除应用私有数据、共享 `data`、`运行日志.log` 及其轮转日志；其中的配置、凭据、收藏、分享记录和日志也会一并删除，操作不可恢复。
 
-服务路由、终端、文件管理、分享收集、静态网站、组网隧道、Docker、进程管理与系统状态的详细操作，请查看 [MDesk 使用手册](./MDesk%20使用手册.md)。
+FPK 与普通 Linux 部署的区别集中在安装向导、应用中心生命周期和飞牛桌面入口同步。服务路由、终端、文件管理、分享收集、静态网站、组网隧道、Docker、进程管理、多用户与系统状态等核心功能仍使用同一套管理界面。
+
+服务路由、终端、文件管理、分享收集、静态网站、组网隧道、Docker、进程管理、多用户与系统状态的详细操作，请查看 [MDesk 使用手册](./MDesk%20使用手册.md)。
+
+### 软件更新与版本维护
+
+- **系统状态更新检测**：界面通过同源 `/api/system/update` 获取当前版本、最新版本与更新说明，不直接由浏览器查询 GitHub Releases，也不会自动下载、安装或替换程序。
+- **Linux 一键安装升级**：使用 `sudo mdeskctl update` 或 `sudo bash install.sh update` 发起独立后台升级，包含下载校验、服务重启、健康检查和失败回滚。
+- **fnOS FPK 升级**：通过 fnOS 应用中心的应用更新流程完成，升级时保留现有数据。
+- **Docker 部署升级**：拉取新镜像并重新创建容器；请确保数据卷挂载方式保持不变。
 
 ---
 
@@ -296,6 +347,19 @@ MDesk 使用手册.md      用户使用、部署与参数说明
 > 服务健康检查固定使用 `GET/HEAD /@mdesk/healthz`，与管理入口路径无关；一键安装脚本也使用该端点探测启动状态。
 
 ## 更新日志
+
+### 2.8.3
+
+- MPK 应用安装改为先校验并暂存安装包，再进入配置向导；支持应用图标、平台及架构兼容性提示，并支持直接拖入 MPK 安装包。
+- MPK 安装会话支持超时、取消和失败清理，减少安装残留及重复安装。
+- 完善飞牛应用与 MPK 应用代理的用户会话隔离、WebSocket 鉴权、成员权限校验和凭据清理。
+- 系统状态新增公网 IP 与归属地检测，优化存储容量统计；服务与进程列表采用虚拟渲染和流畅拖动滚动，端口与网络连接详情改为独立窗口查看。
+- 完善 MPK 商店目录更新跟踪，并调整系统状态及桌面监控组件的界面细节。
+
+### M•Desk 管理器 0.1.3
+
+- 连接列表显示远端 M•Desk 版本，并与最新版本比较，标明当前是否已是最新或可更新。
+- 优化后台状态与资源指标的会话复用和失效处理，减少重复登录，提高刷新稳定性。
 
 ### 2.8.2
 
