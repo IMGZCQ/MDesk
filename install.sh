@@ -1,7 +1,6 @@
 #!/usr/bin/env bash
 set -Eeuo pipefail
 umask 022
-
 readonly APP_NAME="MDesk"
 readonly SERVICE_NAME="mdesk"
 readonly DEFAULT_PORT="19188"
@@ -18,37 +17,52 @@ readonly UPDATER_UNIT_FILE="/run/systemd/system/${UPDATER_UNIT}"
 readonly SYSTEMD_UNIT="/etc/systemd/system/${SERVICE_NAME}.service"
 readonly SYSTEMD_WANTS_LINK="/etc/systemd/system/multi-user.target.wants/${SERVICE_NAME}.service"
 readonly INIT_SCRIPT="/etc/init.d/${SERVICE_NAME}"
-readonly PID_FILE="/run/${SERVICE_NAME}.pid"
 readonly CRON_FILE="/etc/cron.d/${SERVICE_NAME}"
+readonly PID_FILE="/run/${SERVICE_NAME}.pid"
 readonly GITHUB_REPO="IMGZCQ/MDesk"
 readonly MIRROR_BASE="https://mdesk.imcq.top/releases"
 readonly SCRIPT_MIRROR_URL="https://fndesk.imcq.top/?url=mdesk"
-
 readonly DEFAULT_GITHUB_PROXIES=(
   "https://gh-proxy.com/"
-  "https://gh-proxy.org/"
-  "https://ghfast.top/"
-  "https://ghps.cc/"
-  "https://ghproxy.org/"
+  "shturl.cc/KuAWfmBOqBq"
+  "shturl.cc/Nk0INZMZV"
+  "shturl.cc/C2yxX5"
+  "shturl.cc/3KyBEw5XJx"
   "https://ghproxy.cn/"
-  "https://ghproxy.net/"
+  "shturl.cc/UpO0ul1fMF"
   "https://gh.llkk.cc/"
   "https://github.moeyy.xyz/"
-  "https://gh-proxy.net/"
+  "shturl.cc/FMDtskprYMe"
 )
+# 随机密码配置
+readonly PW_LEN=24
+readonly PW_CHARSET="ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789"
 
+# ===================== 美化配色（保留管道兼容）=====================
 if [ -t 1 ]; then
   readonly C_RESET=$'\033[0m'
   readonly C_INFO=$'\033[36m'
   readonly C_OK=$'\033[32m'
   readonly C_WARN=$'\033[33m'
   readonly C_ERR=$'\033[31m'
+  readonly C_TITLE=$'\033[96m'
+  readonly C_LABEL=$'\033[94m'
+  readonly C_VAL=$'\033[97m'
+  readonly C_MENU=$'\033[92m'
+  readonly C_DIM=$'\033[90m'
+  readonly C_HI=$'\033[1;93m'
 else
   readonly C_RESET=""
   readonly C_INFO=""
   readonly C_OK=""
   readonly C_WARN=""
   readonly C_ERR=""
+  readonly C_TITLE=""
+  readonly C_LABEL=""
+  readonly C_VAL=""
+  readonly C_MENU=""
+  readonly C_DIM=""
+  readonly C_HI=""
 fi
 
 TEMP_DIR=""
@@ -74,18 +88,26 @@ SERVICE_MODE=""
 info() {
   printf '%s[信息]%s %s\n' "${C_INFO}" "${C_RESET}" "$*"
 }
-
 success() {
   printf '%s[完成]%s %s\n' "${C_OK}" "${C_RESET}" "$*"
 }
-
 warn() {
   printf '%s[警告]%s %s\n' "${C_WARN}" "${C_RESET}" "$*" >&2
 }
-
 die() {
   printf '%s[错误]%s %s\n' "${C_ERR}" "${C_RESET}" "$*" >&2
   exit 1
+}
+
+# 生成随机强密码
+gen_random_password() {
+  local pass=""
+  for ((i=0; i < PW_LEN; i++)); do
+    local idx
+    idx=$(( RANDOM % ${#PW_CHARSET} ))
+    pass+=${PW_CHARSET:$idx:1}
+  done
+  printf '%s' "${pass}"
 }
 
 cleanup() {
@@ -100,69 +122,87 @@ cleanup() {
     rm -rf -- "${UPDATE_JOB_DIR}"
   fi
 }
-
 trap cleanup EXIT
 
 usage() {
   cat <<'EOF'
 MDesk Linux 安装、升级与卸载脚本
-
 用法:
   sudo bash install.sh               自动检测并进入安装/重装/卸载向导
   sudo bash install.sh install       安装或重新安装
   sudo bash install.sh reinstall     重新安装或升级
   sudo bash install.sh update        后台升级到最新版本
   sudo bash install.sh uninstall     卸载
+  sudo bash install.sh uninstall --purge
+                                     卸载并删除用户数据
   sudo mdeskctl update               后台升级到最新版本
   sudo mdeskctl uninstall            卸载
   sudo mdeskctl status               查看服务状态
   sudo mdeskctl start|stop|restart   管理服务
-
+  sudo mdeskctl reset-password      重置管理密码（自动生成随机强密码）
 环境变量:
   MDESK_GITHUB_PROXY   GitHub 加速地址，英文逗号分隔，支持 {url} 占位符
   MDESK_SERVICE_MODE   强制服务模式: systemd|openrc|sysv|process
-
 没有 systemd 时，脚本会自动尝试 OpenRC、SysV；如果都没有可用的
 服务管理器，则启动后台进程，并在 cron 可用时注册 @reboot 开机启动。
 EOF
 }
 
-# ---------- 终端展示增强 ----------
+# ===================== 美化渲染函数（只改界面，无业务逻辑）=====================
 print_banner() {
-  local info="${C_INFO}"
-  local reset="${C_RESET}"
-  if [ -t 1 ]; then
-    printf '%s' "${info}"
-  fi
   printf '\n'
-  printf '        MDesk · 桌面图标服务\n'
-  printf '    安装 / 升级 / 卸载 一体化脚本\n'
-  printf '%s\n' "$(printf '%*s' 40 '' | tr ' ' '=')"
-  if [ -t 1 ]; then
-    printf '%s\n' "${reset}"
-  fi
+  printf '%s┌─────────────────────────────────────────────┐%s\n' "${C_TITLE}" "${C_RESET}"
+  printf '%s│              MDesk · 桌面图标服务            │%s\n' "${C_TITLE}" "${C_RESET}"
+  printf '%s│      安装 / 升级 / 卸载 一体化脚本           │%s\n' "${C_TITLE}" "${C_RESET}"
+  printf '%s└─────────────────────────────────────────────┘%s\n' "${C_TITLE}" "${C_RESET}"
+  printf '\n'
 }
 
 section() {
   local title="$1"
-  local width=46
-  local line=""
-  line="$(printf '%*s' "${width}" '' | tr ' ' '=')"
-  printf '\n%s\n' "${line}"
-  printf '  %s\n' "${title}"
-  printf '%s\n' "${line}"
+  printf '\n%s├─────────────────────────────────────────────┤%s\n' "${C_DIM}" "${C_RESET}"
+  printf '%s│  %-41s │%s\n' "${C_DIM}" "${title}" "${C_RESET}"
+  printf '%s└─────────────────────────────────────────────┘%s\n' "${C_DIM}" "${C_RESET}"
+}
+
+# 渲染【已安装信息卡片】
+print_install_card() {
+  local mode_label
+  mode_label="$(service_mode_label "${SERVICE_MODE}")"
+  printf '\n'
+  printf '%s┌─────────────────────────────────────────────┐%s\n' "${C_INFO}" "${C_RESET}"
+  printf '%s│ ✅ 检测到 MDesk 已经安装                     │%s\n' "${C_INFO}" "${C_RESET}"
+  printf '%s├─────────────────────────────────────────────┤%s\n' "${C_INFO}" "${C_RESET}"
+  printf '%s│ %s安装路径：%s %-34s │%s\n' "${C_INFO}" "${C_LABEL}" "${C_VAL}" "${INSTALL_DIR}" "${C_RESET}"
+  printf '%s│ %s二进制：%s %-34s │%s\n' "${C_INFO}" "${C_LABEL}" "${C_VAL}" "${BINARY}" "${C_RESET}"
+  printf '%s│ %s监听端口：%s %-34s │%s\n' "${C_INFO}" "${C_LABEL}" "${C_VAL}" "${PORT}" "${C_RESET}"
+  printf '%s│ %s服务模式：%s %-34s │%s\n' "${C_INFO}" "${C_LABEL}" "${C_VAL}" "${mode_label}" "${C_RESET}"
+  printf '%s└─────────────────────────────────────────────┘%s\n' "${C_INFO}" "${C_RESET}"
+  printf '\n'
+}
+
+# 渲染主菜单：仅喺已安装分支先会调用，所以重启、重置密码唔会喺未安装时出现
+print_menu() {
+  printf '%s┌─────────────────────────────────────────────┐%s\n' "${C_MENU}" "${C_RESET}"
+  printf '%s│                 操作菜单                    │%s\n' "${C_MENU}" "${C_RESET}"
+  printf '%s├─────────────────────────────────────────────┤%s\n' "${C_MENU}" "${C_RESET}"
+  printf '%s│ %s1)%s 重新安装或升级（保留用户数据）        │%s\n' "${C_MENU}" "${C_OK}" "${C_MENU}" "${C_RESET}"
+  printf '%s│ %s2)%s 重启服务                              │%s\n' "${C_MENU}" "${C_OK}" "${C_MENU}" "${C_RESET}"
+  printf '%s│ %s3)%s 重置管理密码                          │%s\n' "${C_MENU}" "${C_OK}" "${C_MENU}" "${C_RESET}"
+  printf '%s│ %s4)%s 卸载                                  │%s\n' "${C_MENU}" "${C_OK}" "${C_MENU}" "${C_RESET}"
+  printf '%s│ %s5)%s 退出                                  │%s\n' "${C_MENU}" "${C_OK}" "${C_MENU}" "${C_RESET}"
+  printf '%s└─────────────────────────────────────────────┘%s\n' "${C_MENU}" "${C_RESET}"
+  printf '\n%s请选择 [%s1%s]: %s' "${C_DIM}" "${C_OK}" "${C_DIM}" "${C_RESET}"
 }
 
 require_root() {
   [ "$(id -u)" -eq 0 ] || die "请使用 root 权限运行：sudo bash $0"
 }
-
 prompt_read_into() {
   local target="$1"
   local prompt="$2"
   local value=""
   local read_failed="no"
-
   if { exec 3<>/dev/tty; } 2>/dev/null; then
     printf '%s' "${prompt}" >&3
     IFS= read -r value <&3 || read_failed="yes"
@@ -171,27 +211,22 @@ prompt_read_into() {
     printf '%s' "${prompt}" >&2
     IFS= read -r value || read_failed="yes"
   fi
-
   printf -v "${target}" '%s' "${value}"
   [ "${read_failed}" = "no" ]
 }
-
 prompt_read() {
   local value=""
   prompt_read_into value "$1" || true
   printf '%s' "${value}"
 }
-
 confirm() {
   local prompt="$1"
   local default="${2:-n}"
   local hint="[y/N]"
   local answer=""
-
   if [ "${default}" = "y" ]; then
     hint="[Y/n]"
   fi
-
   prompt_read_into answer "${prompt} ${hint} " || true
   answer="$(trim "${answer}")"
   answer="${answer:-${default}}"
@@ -200,28 +235,23 @@ confirm() {
     *) return 1 ;;
   esac
 }
-
 trim() {
   local value="$1"
   value="${value#"${value%%[![:space:]]*}"}"
   value="${value%"${value##*[![:space:]]}"}"
   printf '%s' "${value}"
 }
-
 normalize_text_file() {
   local file="$1"
   local temporary="${file}.lf.$$"
-
   [ -f "${file}" ] || return 1
   if tr -d '\000' <"${file}" | sed 's/\r$//' >"${temporary}"; then
     mv -f "${temporary}" "${file}"
     return 0
   fi
-
   rm -f "${temporary}"
   return 1
 }
-
 normalize_install_dir() {
   local value="$1"
   while [ "${value%/}" != "${value}" ] && [ "${value}" != "/" ]; do
@@ -229,7 +259,6 @@ normalize_install_dir() {
   done
   printf '%s' "${value}"
 }
-
 validate_port() {
   local value="$1"
   case "${value}" in
@@ -239,7 +268,6 @@ validate_port() {
     die "端口必须是 1-65535 之间的整数。"
   fi
 }
-
 validate_install_dir() {
   local value="$1"
   [ -n "${value}" ] || die "安装路径不能为空。"
@@ -259,7 +287,6 @@ validate_install_dir() {
       ;;
   esac
 }
-
 detect_arch() {
   local machine
   machine="$(uname -m 2>/dev/null || true)"
@@ -272,13 +299,11 @@ detect_arch() {
       ;;
   esac
 }
-
 load_config() {
   if [ -r "${CONFIG_FILE}" ]; then
     # shellcheck disable=SC1090
     . "${CONFIG_FILE}"
   fi
-
   INSTALL_DIR="${INSTALL_DIR:-${DEFAULT_INSTALL_DIR}}"
   PORT="${PORT:-${DEFAULT_PORT}}"
   BINARY="${BINARY:-${INSTALL_DIR}/MDesk}"
@@ -287,14 +312,12 @@ load_config() {
   CONSOLE_LOG="${CONSOLE_LOG:-${INSTALL_DIR}/mdesk-console.log}"
   SERVICE_MODE="${SERVICE_MODE:-}"
 }
-
 infer_existing_install() {
   local candidate=""
   local name=""
   local dir=""
   local exec_start=""
   local marker="no"
-
   if [ -f "${SYSTEMD_UNIT}" ]; then
     marker="yes"
     exec_start="$(sed -n 's/^ExecStart=//p' "${SYSTEMD_UNIT}" | head -n 1)"
@@ -308,7 +331,6 @@ infer_existing_install() {
       candidate="${exec_start}"
     fi
   fi
-
   if [ -f "${INIT_SCRIPT}" ]; then
     marker="yes"
     if [ -z "${candidate}" ]; then
@@ -321,15 +343,12 @@ infer_existing_install() {
       fi
     fi
   fi
-
   if [ -f "${CRON_FILE}" ]; then
     marker="yes"
   fi
-
   if [ -e "${CONTROL_BIN}" ] || [ -e "${CONTROL_SCRIPT}" ]; then
     marker="yes"
   fi
-
   if [ -z "${candidate}" ]; then
     for dir in /opt/MDesk /opt/mdesk; do
       for name in MDesk MDesk-linux-amd64 MDesk-linux-arm64 MDesk-linux-armv7; do
@@ -340,7 +359,6 @@ infer_existing_install() {
       done
     done
   fi
-
   if [ -z "${candidate}" ]; then
     for candidate in /opt/MDesk/MDesk-linux-* /opt/mdesk/MDesk-linux-*; do
       if [ -f "${candidate}" ]; then
@@ -349,7 +367,6 @@ infer_existing_install() {
       candidate=""
     done
   fi
-
   if [ -z "${candidate}" ]; then
     if [ "${marker}" = "yes" ]; then
       INSTALL_DIR="${DEFAULT_INSTALL_DIR}"
@@ -367,7 +384,6 @@ infer_existing_install() {
     LOG_FILE="${INSTALL_DIR}/mdesk.log"
     CONSOLE_LOG="${INSTALL_DIR}/mdesk-console.log"
   fi
-
   if [ -f "${SYSTEMD_UNIT}" ]; then
     SERVICE_MODE="systemd"
   elif [ -f "${INIT_SCRIPT}" ]; then
@@ -379,7 +395,6 @@ infer_existing_install() {
   elif [ -f "${CRON_FILE}" ]; then
     SERVICE_MODE="process"
   fi
-
   if [ -f "${SYSTEMD_UNIT}" ]; then
     local unit_port
     local unit_data
@@ -393,38 +408,30 @@ infer_existing_install() {
     [ -n "${unit_data}" ] && DATA_DIR="${unit_data}"
     [ -n "${unit_log}" ] && LOG_FILE="${unit_log}"
   fi
-
   return 0
 }
-
 is_installed() {
   if [ -f "${CONFIG_FILE}" ]; then
     return 0
   fi
-
   if [ -f "${SYSTEMD_UNIT}" ] || [ -f "${INIT_SCRIPT}" ] || [ -f "${CRON_FILE}" ] ||
      [ -e "${CONTROL_BIN}" ] || [ -e "${CONTROL_SCRIPT}" ]; then
     infer_existing_install || true
     return 0
   fi
-
   infer_existing_install
 }
-
 load_existing_config() {
   if [ -r "${CONFIG_FILE}" ]; then
     load_config
     return 0
   fi
-
   infer_existing_install || true
   load_config
 }
-
 detect_service_mode() {
   local override="${MDESK_SERVICE_MODE:-}"
   local pid1=""
-
   if [ -n "${override}" ]; then
     case "${override}" in
       systemd)
@@ -445,21 +452,17 @@ detect_service_mode() {
     printf '%s' "${override}"
     return 0
   fi
-
   pid1="$(cat /proc/1/comm 2>/dev/null || ps -p 1 -o comm= 2>/dev/null || true)"
   pid1="$(trim "${pid1}")"
-
   if [ "${pid1}" = "systemd" ] && command -v systemctl >/dev/null 2>&1; then
     printf 'systemd'
     return 0
   fi
-
   if command -v rc-service >/dev/null 2>&1 &&
      { [ -d /run/openrc ] || [ -x /sbin/openrc-run ] || command -v rc-update >/dev/null 2>&1; }; then
     printf 'openrc'
     return 0
   fi
-
   case "${pid1}" in
     init|sysvinit|busybox)
       if [ -d /etc/init.d ]; then
@@ -468,10 +471,8 @@ detect_service_mode() {
       fi
       ;;
   esac
-
   printf 'process'
 }
-
 service_mode_label() {
   case "$1" in
     systemd) printf 'systemd' ;;
@@ -481,7 +482,6 @@ service_mode_label() {
     *) printf '未知' ;;
   esac
 }
-
 save_config() {
   mkdir -p "${CONFIG_DIR}"
   {
@@ -496,14 +496,12 @@ save_config() {
   chmod 600 "${CONFIG_FILE}.tmp"
   mv -f "${CONFIG_FILE}.tmp" "${CONFIG_FILE}"
 }
-
 require_download_tools() {
   command -v curl >/dev/null 2>&1 || command -v wget >/dev/null 2>&1 ||
     die "需要 curl 或 wget 才能下载 MDesk。"
   command -v install >/dev/null 2>&1 || die "系统缺少 install 命令。"
   command -v mktemp >/dev/null 2>&1 || die "系统缺少 mktemp 命令。"
 }
-
 prepare_install() {
   require_download_tools
   ARCH="${ARCH:-$(detect_arch)}"
@@ -511,12 +509,10 @@ prepare_install() {
     TEMP_DIR="$(mktemp -d "${TMPDIR:-/tmp}/mdesk-install.XXXXXX")"
   fi
 }
-
 download_file() {
   local url="$1"
   local destination="$2"
   local part="${destination}.part"
-
   rm -f -- "${part}"
   if command -v curl >/dev/null 2>&1; then
     local args=(
@@ -542,51 +538,41 @@ download_file() {
       return 1
     fi
   fi
-
   [ -s "${part}" ] || {
     rm -f -- "${part}"
     return 1
   }
   mv -f -- "${part}" "${destination}"
 }
-
 validate_binary() {
   local file="$1"
   local magic=""
-
   [ -s "${file}" ] || return 1
   if command -v od >/dev/null 2>&1; then
     magic="$(od -An -N4 -tx1 "${file}" 2>/dev/null | tr -d '[:space:]')"
     [ "${magic}" = "7f454c46" ] || return 1
   fi
-
   chmod 0755 "${file}"
   "${file}" --help >/dev/null 2>&1
 }
-
 probe_url() {
   local url="$1"
   local result=""
   local code=""
   local elapsed=""
-
   command -v curl >/dev/null 2>&1 || return 1
-
   result="$(curl -fL -I --connect-timeout 4 --max-time 8 -sS \
     -o /dev/null -w '%{http_code} %{time_total}' "${url}" 2>/dev/null)" || true
   read -r code elapsed <<<"${result}"
-
   if [ "${code}" != "200" ]; then
     result="$(curl -fL --range 0-1023 --max-filesize 65536 --connect-timeout 4 --max-time 8 -sS \
       -o /dev/null -w '%{http_code} %{time_total}' "${url}" 2>/dev/null)" || true
     read -r code elapsed <<<"${result}"
   fi
-
   [ "${code}" = "200" ] || [ "${code}" = "206" ] || return 1
   [ -n "${elapsed}" ] || return 1
   printf '%s' "${elapsed}"
 }
-
 contains_value() {
   local needle="$1"
   shift
@@ -596,7 +582,6 @@ contains_value() {
   done
   return 1
 }
-
 download_from_github() {
   local destination="$1"
   local github_url="https://github.com/${GITHUB_REPO}/releases/latest/download/MDesk-linux-${ARCH}"
@@ -613,13 +598,11 @@ download_from_github() {
   local line=""
   local sorted_index=""
   local custom="${MDESK_GITHUB_PROXY:-}"
-
   if [ -n "${custom}" ]; then
     IFS=',' read -r -a proxy_list <<<"${custom}"
   else
     proxy_list=("${DEFAULT_GITHUB_PROXIES[@]}")
   fi
-
   for proxy in "${proxy_list[@]}"; do
     proxy="$(trim "${proxy}")"
     [ -n "${proxy}" ] || continue
@@ -635,7 +618,7 @@ download_from_github() {
 
   if command -v curl >/dev/null 2>&1 && [ "${#candidates[@]}" -gt 1 ]; then
     mkdir -p "${probe_dir}"
-    info "正在测试 GitHub 加速线路速度。"
+    info "正在测速筛选最优 GitHub 加速节点，请稍候..."
     for candidate in "${candidates[@]}"; do
       probe_file="${probe_dir}/${index}"
       (
@@ -673,36 +656,33 @@ download_from_github() {
   index=0
   for candidate in "${ordered[@]}"; do
     index=$((index + 1))
-    info "尝试 GitHub 下载线路 ${index}/${#ordered[@]}。"
+    info "尝试 GitHub 下载线路 ${index}/${#ordered[@]}：${candidate}"
     if download_file "${candidate}" "${destination}" && validate_binary "${destination}"; then
       return 0
     fi
     rm -f -- "${destination}"
+    warn "该线路下载或校验失败，切换下一个"
   done
 
   return 1
 }
-
 fetch_binary() {
   local destination="$1"
   local mirror_url="${MIRROR_BASE}/MDesk-linux-${ARCH}"
-
   info "优先从项目镜像下载 ${APP_NAME}：${mirror_url}"
   if download_file "${mirror_url}" "${destination}" && validate_binary "${destination}"; then
-    success "项目镜像下载完成。"
+    success "项目镜像下载完成"
     return 0
   fi
-
   rm -f -- "${destination}"
-  warn "项目镜像不可用，切换到 GitHub Release 加速线路。"
+  warn "项目镜像不可用，切换到 GitHub Release 加速线路"
   if download_from_github "${destination}"; then
-    success "GitHub Release 下载完成。"
+    success "GitHub Release 下载完成"
     return 0
   fi
 
   return 1
 }
-
 persist_installer() {
   local source_path="${BASH_SOURCE[0]:-$0}"
   local temporary="${INSTALLER_FILE}.tmp.$$"
@@ -717,11 +697,6 @@ persist_installer() {
   mkdir -p "${CONFIG_DIR}"
   rm -f "${temporary}" "${sanitized}"
 
-  # bash <(curl ...) exposes a pipe rather than a regular file. Copy once and
-  # normalize it before checking the shebang so the installer copy is reusable
-  # by the detached updater and never contains CRLF/NUL bytes.
-  # Process substitution paths such as /dev/fd/63 are streams, not reusable
-  # installer files. Reading them here can block or save a truncated script.
   if [ -n "${source_path}" ] && [ -f "${source_path}" ] && [ -r "${source_path}" ]; then
     if tr -d '\000' <"${source_path}" | sed 's/\r$//' >"${sanitized}" &&
        [ -s "${sanitized}" ] &&
@@ -796,10 +771,10 @@ read_update_value() {
   sed -n "s/^${key}=//p" "${file}" 2>/dev/null | head -n 1
 }
 
-# 判断给定 PID 是否为 MDesk 升级 worker（后台进程由 install.sh --update-worker 启动）
 pid_is_update_worker() {
   local pid="${1:-}"
   local cmdline=""
+
   case "${pid}" in
     ''|*[!0-9]*) return 1 ;;
   esac
@@ -811,11 +786,11 @@ pid_is_update_worker() {
   return 1
 }
 
-# 计算升级状态距离现在的秒数；无法解析时返回空
 status_age_seconds() {
   local ts="$1"
   local then=""
   local now=""
+
   [ -n "${ts}" ] || return 1
   then="$(date -d "${ts}" +%s 2>/dev/null || true)"
   [ -n "${then}" ] || return 1
@@ -824,9 +799,9 @@ status_age_seconds() {
   printf '%s' "$(( now - then ))"
 }
 
-# 清理过期/无效的升级锁，避免脏锁永久阻塞后续升级
 clear_update_lock() {
   local reason="${1:-stale}"
+
   rm -f "${UPDATE_STATUS_FILE}" 2>/dev/null || true
   if command -v systemctl >/dev/null 2>&1 && [ -f "${UPDATER_UNIT_FILE}" ]; then
     systemctl stop "${UPDATER_UNIT}" >/dev/null 2>&1 || true
@@ -837,8 +812,8 @@ clear_update_lock() {
   warn "检测到过期的升级锁（${reason}），已自动清除，可重新执行升级。"
 }
 
-readonly UPDATE_LOCK_MAX_AGE=1800   # 升级锁最大存活时间（秒），超过则强制清锁
-readonly UPDATE_STARTING_GRACE=60   # starting 阶段父进程交棒宽限（秒）
+readonly UPDATE_LOCK_MAX_AGE=1800
+readonly UPDATE_STARTING_GRACE=60
 
 update_in_progress() {
   local state=""
@@ -852,7 +827,6 @@ update_in_progress() {
     *) return 1 ;;
   esac
 
-  # 1) systemd 升级单元确实在运行
   if command -v systemctl >/dev/null 2>&1 &&
      systemctl is-active --quiet "${UPDATER_UNIT}" 2>/dev/null; then
     return 0
@@ -863,14 +837,11 @@ update_in_progress() {
     ''|*[!0-9]*) return 1 ;;
   esac
 
-  # 2) 确认记录的 PID 真的是 MDesk 升级 worker（防止 PID 复用误判）
   if pid_is_update_worker "${pid}"; then
     return 0
   fi
 
-  # 3) 进程还活着，但不是升级 worker
   if kill -0 "${pid}" 2>/dev/null; then
-    # starting 阶段父进程尚未把 PID 交棒给 worker，给予短暂宽限避免误放行
     if [ "${state}" = "starting" ]; then
       updated_at="$(read_update_value UPDATED_AT || true)"
       age="$(status_age_seconds "${updated_at}" || true)"
@@ -878,7 +849,6 @@ update_in_progress() {
         return 0
       fi
     fi
-    # 存活但身份无法确认（多为 PID 复用）：若锁已超时则强制清锁放行
     updated_at="$(read_update_value UPDATED_AT || true)"
     age="$(status_age_seconds "${updated_at}" || true)"
     if [ -z "${age}" ] || [ "${age}" -ge "${UPDATE_LOCK_MAX_AGE}" ]; then
@@ -887,7 +857,6 @@ update_in_progress() {
     return 1
   fi
 
-  # 4) 记录的进程已死，但状态仍停留在 starting/running —— 不一致的脏锁
   updated_at="$(read_update_value UPDATED_AT || true)"
   age="$(status_age_seconds "${updated_at}" || true)"
   if [ -z "${age}" ] || [ "${age}" -ge "${UPDATE_LOCK_MAX_AGE}" ]; then
@@ -942,12 +911,7 @@ launch_detached_update() {
     die "无法保存安装脚本，不能启动独立升级进程。"
   prepare_update_job
   write_update_job
-  # Record the parent PID while the detached worker is being launched. If the
-  # parent dies before the worker writes its own PID, this status becomes stale
-  # instead of blocking future updates forever.
   write_update_status "starting" "正在启动独立升级任务" "$$" || true
-
-  # Keep the job directory after the interactive parent exits. The worker owns it now.
   KEEP_TEMP_DIR="yes"
 
   if [ "${OLD_SERVICE_MODE}" = "systemd" ] &&
@@ -1159,6 +1123,8 @@ stop_mdesk_processes() {
 }
 
 service_is_active() {
+  local pid=""
+
   case "${SERVICE_MODE}" in
     systemd)
       command -v systemctl >/dev/null 2>&1 && systemctl is-active --quiet "${SERVICE_NAME}"
@@ -1170,7 +1136,6 @@ service_is_active() {
       [ -x "${INIT_SCRIPT}" ] && "${INIT_SCRIPT}" status >/dev/null 2>&1
       ;;
     process)
-      local pid=""
       [ -f "${PID_FILE}" ] || return 1
       pid="$(cat "${PID_FILE}" 2>/dev/null || true)"
       process_is_mdesk_pid "${pid}"
@@ -1331,13 +1296,61 @@ EOF
   chmod 644 "${CRON_FILE}"
 }
 
+port_is_listening() {
+  local hex_port=""
+  local file=""
+
+  if command -v ss >/dev/null 2>&1; then
+    ss -ltn 2>/dev/null |
+      awk -v port=":${PORT}" 'NR > 1 && $4 ~ port "$" { found=1 } END { exit !found }'
+    return
+  fi
+
+  if command -v netstat >/dev/null 2>&1; then
+    netstat -ltn 2>/dev/null |
+      awk -v port=":${PORT}" 'NR > 2 && $4 ~ port "$" { found=1 } END { exit !found }'
+    return
+  fi
+
+  if command -v lsof >/dev/null 2>&1; then
+    lsof -nP -iTCP:"${PORT}" -sTCP:LISTEN >/dev/null 2>&1
+    return
+  fi
+
+  if command -v fuser >/dev/null 2>&1; then
+    fuser -s -n tcp "${PORT}" >/dev/null 2>&1
+    return
+  fi
+
+  hex_port="$(printf '%04X' "${PORT}")"
+  for file in /proc/net/tcp /proc/net/tcp6; do
+    [ -r "${file}" ] || continue
+    awk -v port=":${hex_port}" '
+      NR > 1 && $2 ~ port "$" && $4 == "0A" { found=1 }
+      END { exit !found }
+    ' "${file}" >/dev/null 2>&1 && return 0
+  done
+  return 1
+}
+
+wait_port_released() {
+  local deadline=$((SECONDS + 15))
+
+  while [ "${SECONDS}" -lt "${deadline}" ]; do
+    if ! port_is_listening; then
+      return 0
+    fi
+    sleep 1
+  done
+  return 1
+}
+
 start_background_process() {
   local pid=""
 
   if service_is_active; then
     return 0
   fi
-
   if port_is_listening; then
     warn "端口 ${PORT} 已被占用，无法启动后台 MDesk 进程。"
     return 1
@@ -1352,7 +1365,7 @@ start_background_process() {
   )
   sleep 1
   pid="$(cat "${PID_FILE}" 2>/dev/null || true)"
-  [ -n "${pid}" ] && kill -0 "${pid}" 2>/dev/null
+  [ -n "${pid}" ] && process_is_mdesk_pid "${pid}"
 }
 
 stop_background_process() {
@@ -1374,41 +1387,12 @@ stop_background_process() {
   rm -f "${PID_FILE}"
 }
 
-port_is_listening() {
-  if command -v ss >/dev/null 2>&1; then
-    ss -ltn 2>/dev/null |
-      awk -v port=":${PORT}" 'NR > 1 && $4 ~ port "$" { found=1 } END { exit !found }'
-    return
-  fi
-
-  if command -v netstat >/dev/null 2>&1; then
-    netstat -ltn 2>/dev/null |
-      awk -v port=":${PORT}" 'NR > 2 && $4 ~ port "$" { found=1 } END { exit !found }'
-    return
-  fi
-
-  if command -v lsof >/dev/null 2>&1; then
-    lsof -nP -iTCP:"${PORT}" -sTCP:LISTEN >/dev/null 2>&1
-    return
-  fi
-
-  return 1
-}
-
-wait_port_released() {
-  local deadline=$((SECONDS + 15))
-
-  while [ "${SECONDS}" -lt "${deadline}" ]; do
-    if ! port_is_listening; then
-      return 0
-    fi
-    sleep 1
-  done
-
-  return 1
-}
-
 service_start() {
+  if [ "${SERVICE_MODE}" != "process" ] && ! service_is_active && port_is_listening; then
+    warn "端口 ${PORT} 已被占用，无法启动 MDesk 服务。"
+    return 1
+  fi
+
   case "${SERVICE_MODE}" in
     systemd)
       command -v systemctl >/dev/null 2>&1 || return 1
@@ -1465,6 +1449,7 @@ service_restart() {
       ;;
     process)
       stop_mdesk_processes || true
+      wait_port_released || return 1
       start_background_process
       ;;
     *)
@@ -1560,6 +1545,7 @@ wait_http_ready() {
 
 remove_runlevel_links() {
   local link=""
+
   for link in /etc/rc[0-6S].d/[SK][0-9][0-9]"${SERVICE_NAME}"; do
     [ -L "${link}" ] || [ -e "${link}" ] || continue
     rm -f -- "${link}"
@@ -1680,435 +1666,22 @@ write_controller() {
 set -u
 
 CONFIG_FILE="/etc/mdesk/mdesk.conf"
-CONTROL_BIN="/usr/local/sbin/mdeskctl"
-CONTROL_SCRIPT="/etc/mdesk/mdeskctl"
 INSTALLER_FILE="/etc/mdesk/install.sh"
-UPDATE_STATUS_FILE="/etc/mdesk/update.status"
-UPDATE_LOG="/etc/mdesk/update.log"
-UPDATER_UNIT="mdesk-updater.service"
-UPDATER_UNIT_FILE="/run/systemd/system/mdesk-updater.service"
-SYSTEMD_UNIT="/etc/systemd/system/mdesk.service"
-SYSTEMD_WANTS_LINK="/etc/systemd/system/multi-user.target.wants/mdesk.service"
-INIT_SCRIPT="/etc/init.d/mdesk"
-CRON_FILE="/etc/cron.d/mdesk"
-PID_FILE="/run/mdesk.pid"
 
 if [ ! -r "${CONFIG_FILE}" ]; then
   echo "[错误] 未找到 MDesk 安装配置：${CONFIG_FILE}" >&2
   exit 1
 fi
+if [ ! -r "${INSTALLER_FILE}" ]; then
+  echo "[错误] 未找到 MDesk 安装脚本：${INSTALLER_FILE}" >&2
+  exit 1
+fi
 
-# shellcheck disable=SC1090
-. "${CONFIG_FILE}"
+if [ "$#" -eq 0 ]; then
+  set -- status
+fi
 
-update_value() {
-  local key="$1"
-  [ -r "${UPDATE_STATUS_FILE}" ] || return 1
-  sed -n "s/^${key}=//p" "${UPDATE_STATUS_FILE}" 2>/dev/null | head -n 1
-}
-
-pid_is_update_worker() {
-  local pid="${1:-}"
-  local cmdline=""
-  case "${pid}" in
-    ''|*[!0-9]*) return 1 ;;
-  esac
-  kill -0 "${pid}" 2>/dev/null || return 1
-  cmdline="$(tr '\000' ' ' <"/proc/${pid}/cmdline" 2>/dev/null || true)"
-  case " ${cmdline} " in
-    *" --update-worker "*) return 0 ;;
-  esac
-  return 1
-}
-
-status_age_seconds() {
-  local ts="${1:-}"
-  local then=""
-  local now=""
-  [ -n "${ts}" ] || return 1
-  then="$(date -d "${ts}" +%s 2>/dev/null || true)"
-  [ -n "${then}" ] || return 1
-  now="$(date +%s 2>/dev/null || true)"
-  [ -n "${now}" ] || return 1
-  printf '%s' "$(( now - then ))"
-}
-
-clear_update_lock() {
-  local reason="${1:-stale}"
-  rm -f "${UPDATE_STATUS_FILE}" 2>/dev/null || true
-  if command -v systemctl >/dev/null 2>&1 && [ -f "${UPDATER_UNIT_FILE}" ]; then
-    systemctl stop "${UPDATER_UNIT}" >/dev/null 2>&1 || true
-    systemctl reset-failed "${UPDATER_UNIT}" >/dev/null 2>&1 || true
-    rm -f "${UPDATER_UNIT_FILE}"
-    systemctl daemon-reload >/dev/null 2>&1 || true
-  fi
-  echo "[警告] 检测到过期的升级锁（${reason}），已自动清除，可重新执行升级。" >&2
-}
-
-UPDATE_LOCK_MAX_AGE=1800
-UPDATE_STARTING_GRACE=60
-
-update_in_progress() {
-  local state=""
-  local pid=""
-  local updated_at=""
-  local age=""
-
-  state="$(update_value STATE || true)"
-  case "${state}" in
-    starting|running) ;;
-    *) return 1 ;;
-  esac
-  if command -v systemctl >/dev/null 2>&1 &&
-     systemctl is-active --quiet "${UPDATER_UNIT}" 2>/dev/null; then
-    return 0
-  fi
-  pid="$(update_value PID || true)"
-  case "${pid}" in
-    ''|*[!0-9]*) return 1 ;;
-  esac
-  if pid_is_update_worker "${pid}"; then
-    return 0
-  fi
-  if kill -0 "${pid}" 2>/dev/null; then
-    if [ "${state}" = "starting" ]; then
-      updated_at="$(update_value UPDATED_AT || true)"
-      age="$(status_age_seconds "${updated_at}" || true)"
-      if [ -z "${age}" ] || [ "${age}" -lt "${UPDATE_STARTING_GRACE}" ]; then
-        return 0
-      fi
-    fi
-    updated_at="$(update_value UPDATED_AT || true)"
-    age="$(status_age_seconds "${updated_at}" || true)"
-    if [ -z "${age}" ] || [ "${age}" -ge "${UPDATE_LOCK_MAX_AGE}" ]; then
-      clear_update_lock "升级锁超时且进程状态无法确认"
-    fi
-    return 1
-  fi
-  updated_at="$(update_value UPDATED_AT || true)"
-  age="$(status_age_seconds "${updated_at}" || true)"
-  if [ -z "${age}" ] || [ "${age}" -ge "${UPDATE_LOCK_MAX_AGE}" ]; then
-    clear_update_lock "进程已退出但状态未更新"
-  fi
-  return 1
-}
-
-show_update_status() {
-  local state=""
-  local message=""
-  local updated_at=""
-
-  [ -r "${UPDATE_STATUS_FILE}" ] || return 0
-  state="$(update_value STATE || true)"
-  message="$(update_value MESSAGE || true)"
-  updated_at="$(update_value UPDATED_AT || true)"
-  printf '\n最近升级状态：%s\n' "${state:-未知}"
-  [ -z "${message}" ] || printf '说明：%s\n' "${message}"
-  [ -z "${updated_at}" ] || printf '更新时间：%s\n' "${updated_at}"
-  printf '升级日志：%s\n' "${UPDATE_LOG}"
-}
-
-run_update() {
-  if update_in_progress; then
-    echo "[提示] MDesk 升级任务正在运行，请稍后使用 mdeskctl status 查看。" >&2
-    return 1
-  fi
-  if [ ! -r "${INSTALLER_FILE}" ]; then
-    echo "[错误] 未找到升级脚本 ${INSTALLER_FILE}，请重新运行安装脚本。" >&2
-    return 1
-  fi
-  exec /bin/bash "${INSTALLER_FILE}" update
-}
-
-is_mdesk_pid() {
-  local pid="${1:-}"
-  local exe=""
-  local cmdline=""
-
-  case "${pid}" in
-    ''|*[!0-9]*) return 1 ;;
-  esac
-  kill -0 "${pid}" 2>/dev/null || return 1
-
-  exe="$(readlink "/proc/${pid}/exe" 2>/dev/null || true)"
-  case "${exe}" in
-    *" (deleted)") exe="${exe% (deleted)}" ;;
-  esac
-  cmdline="$(tr '\000' ' ' <"/proc/${pid}/cmdline" 2>/dev/null || true)"
-
-  [ "${exe}" = "${BINARY}" ] && return 0
-  case " ${cmdline} " in
-    *" ${BINARY} "*) return 0 ;;
-  esac
-  return 1
-}
-
-stop_mdesk_processes() {
-  local pid=""
-  local pid_path=""
-  local count=0
-  local running="no"
-  local -a pids=()
-
-  for pid_path in /proc/[0-9]*; do
-    [ -d "${pid_path}" ] || continue
-    pid="${pid_path##*/}"
-    [ "${pid}" = "$$" ] && continue
-    if is_mdesk_pid "${pid}"; then
-      pids+=("${pid}")
-    fi
-  done
-
-  [ "${#pids[@]}" -gt 0 ] || {
-    rm -f "${PID_FILE}"
-    return 0
-  }
-
-  for pid in "${pids[@]}"; do
-    kill -TERM "${pid}" 2>/dev/null || true
-  done
-  while [ "${count}" -lt 15 ]; do
-    running="no"
-    for pid in "${pids[@]}"; do
-      if kill -0 "${pid}" 2>/dev/null; then
-        running="yes"
-        break
-      fi
-    done
-    [ "${running}" = "no" ] && break
-    sleep 1
-    count=$((count + 1))
-  done
-  for pid in "${pids[@]}"; do
-    kill -KILL "${pid}" 2>/dev/null || true
-  done
-  rm -f "${PID_FILE}"
-}
-
-is_active() {
-  case "${SERVICE_MODE}" in
-    systemd)
-      command -v systemctl >/dev/null 2>&1 && systemctl is-active --quiet mdesk
-      ;;
-    openrc)
-      command -v rc-service >/dev/null 2>&1 && rc-service mdesk status >/dev/null 2>&1
-      ;;
-    sysv)
-      [ -x "${INIT_SCRIPT}" ] && "${INIT_SCRIPT}" status >/dev/null 2>&1
-      ;;
-    process)
-      [ -f "${PID_FILE}" ] || return 1
-      pid="$(cat "${PID_FILE}" 2>/dev/null || true)"
-      is_mdesk_pid "${pid}"
-      ;;
-    *)
-      return 1
-      ;;
-  esac
-}
-
-stop_service() {
-  case "${SERVICE_MODE}" in
-    systemd) systemctl stop mdesk >/dev/null 2>&1 || true ;;
-    openrc) rc-service mdesk stop >/dev/null 2>&1 || true ;;
-    sysv) [ -x "${INIT_SCRIPT}" ] && "${INIT_SCRIPT}" stop >/dev/null 2>&1 || true ;;
-    process) ;;
-  esac
-  stop_mdesk_processes || true
-}
-
-start_service() {
-  case "${SERVICE_MODE}" in
-    systemd)
-      command -v systemctl >/dev/null 2>&1 || { echo "[错误] 当前系统没有 systemctl。" >&2; return 1; }
-      systemctl start mdesk
-      ;;
-    openrc)
-      command -v rc-service >/dev/null 2>&1 || { echo "[错误] 当前系统没有 rc-service。" >&2; return 1; }
-      rc-service mdesk start
-      ;;
-    sysv) "${INIT_SCRIPT}" start ;;
-    process)
-      if is_active; then
-        return 0
-      fi
-      mkdir -p "${INSTALL_DIR}" "${DATA_DIR}" "$(dirname "${PID_FILE}")"
-      (
-        cd "${INSTALL_DIR}"
-        nohup "${BINARY}" -port "${PORT}" -data "${DATA_DIR}" -log "${LOG_FILE}" \
-          >>"${CONSOLE_LOG}" 2>&1 &
-        printf '%s\n' "$!" >"${PID_FILE}"
-      )
-      sleep 1
-      is_active
-      ;;
-    *)
-      echo "[错误] 未知服务模式：${SERVICE_MODE}" >&2
-      return 1
-      ;;
-  esac
-}
-
-restart_service() {
-  case "${SERVICE_MODE}" in
-    systemd)
-      command -v systemctl >/dev/null 2>&1 || { echo "[错误] 当前系统没有 systemctl。" >&2; return 1; }
-      systemctl restart mdesk
-      ;;
-    openrc)
-      command -v rc-service >/dev/null 2>&1 || { echo "[错误] 当前系统没有 rc-service。" >&2; return 1; }
-      rc-service mdesk restart
-      ;;
-    sysv) "${INIT_SCRIPT}" restart ;;
-    process)
-      stop_service
-      start_service
-      ;;
-  esac
-}
-
-show_service_status() {
-  case "${SERVICE_MODE}" in
-    systemd)
-      command -v systemctl >/dev/null 2>&1 || { echo "MDesk 未运行：当前系统没有 systemctl。" ; return 1; }
-      systemctl status mdesk --no-pager -l
-      ;;
-    openrc)
-      command -v rc-service >/dev/null 2>&1 || { echo "MDesk 未运行：当前系统没有 rc-service。" ; return 1; }
-      rc-service mdesk status
-      ;;
-    sysv) "${INIT_SCRIPT}" status ;;
-    process)
-      if is_active; then
-        echo "MDesk 正在运行，PID $(cat "${PID_FILE}")"
-        return 0
-      fi
-      echo "MDesk 未运行"
-      return 3
-      ;;
-  esac
-}
-
-show_status() {
-  local result=0
-  show_service_status || result=$?
-  show_update_status
-  return "${result}"
-}
-
-remove_runlevel_links() {
-  for link in /etc/rc[0-6S].d/[SK][0-9][0-9]mdesk; do
-    [ -L "${link}" ] || [ -e "${link}" ] || continue
-    rm -f -- "${link}"
-  done
-}
-
-safe_remove_dir() {
-  local path="$1"
-  case "${path}" in
-    /|/bin|/boot|/dev|/etc|/home|/lib|/lib64|/opt|/proc|/root|/run|/sbin|/srv|/sys|/tmp|/usr|/var)
-      echo "[错误] 拒绝删除系统目录：${path}" >&2
-      return 1
-      ;;
-    /*) ;;
-    *)
-      echo "[错误] 拒绝删除非绝对路径：${path}" >&2
-      return 1
-      ;;
-  esac
-  rm -rf -- "${path}"
-}
-
-uninstall_service() {
-  local purge="${1:-no}"
-  local delete_data="no"
-
-  if update_in_progress; then
-    echo "[错误] MDesk 升级任务正在运行，完成后再卸载。" >&2
-    return 1
-  fi
-
-  if [ "${purge}" = "yes" ]; then
-    delete_data="yes"
-  elif [ -r /dev/tty ]; then
-    printf '是否同时删除用户数据 %s？[y/N] ' "${DATA_DIR}" >/dev/tty
-    IFS= read -r answer </dev/tty || answer=""
-    case "${answer}" in
-      y|Y|yes|YES|Yes) delete_data="yes" ;;
-    esac
-  fi
-
-  stop_service
-
-  case "${SERVICE_MODE}" in
-    systemd)
-      systemctl disable mdesk >/dev/null 2>&1 || true
-      ;;
-    openrc)
-      command -v rc-update >/dev/null 2>&1 && rc-update del mdesk default >/dev/null 2>&1 || true
-      rm -f /etc/runlevels/default/mdesk
-      ;;
-    sysv)
-      if command -v update-rc.d >/dev/null 2>&1; then
-        update-rc.d -f mdesk remove >/dev/null 2>&1 || true
-      elif command -v chkconfig >/dev/null 2>&1; then
-        chkconfig --del mdesk >/dev/null 2>&1 || true
-      fi
-      remove_runlevel_links
-      ;;
-    process)
-      rm -f "${CRON_FILE}"
-      ;;
-  esac
-
-  rm -f "${SYSTEMD_UNIT}" "${SYSTEMD_WANTS_LINK}" "${INIT_SCRIPT}" "${CRON_FILE}" "${PID_FILE}" "${UPDATER_UNIT_FILE}"
-  if command -v systemctl >/dev/null 2>&1 && [ -d /run/systemd/system ]; then
-    systemctl daemon-reload >/dev/null 2>&1 || true
-    systemctl reset-failed mdesk >/dev/null 2>&1 || true
-    systemctl reset-failed "${UPDATER_UNIT}" >/dev/null 2>&1 || true
-  fi
-
-  rm -f "${BINARY}" "${LOG_FILE}" "${CONSOLE_LOG}"
-  if [ "${delete_data}" = "yes" ]; then
-    if [ "${DATA_DIR}" != "${INSTALL_DIR}" ] && [ -d "${DATA_DIR}" ]; then
-      safe_remove_dir "${DATA_DIR}" || true
-    fi
-    if [ -d "${INSTALL_DIR}" ]; then
-      safe_remove_dir "${INSTALL_DIR}" || true
-    fi
-  else
-    rmdir "${INSTALL_DIR}" 2>/dev/null || true
-  fi
-
-  rm -f "${CONTROL_BIN}" "${CONTROL_SCRIPT}" "${INSTALLER_FILE}" "${UPDATE_STATUS_FILE}" \
-    "${UPDATE_LOG}" "${CONFIG_FILE}" "${CONFIG_FILE}.tmp"
-  rmdir /etc/mdesk 2>/dev/null || true
-
-  if [ "${delete_data}" = "yes" ]; then
-    echo "[完成] MDesk 和服务已卸载，用户数据已删除。"
-  else
-    echo "[完成] MDesk 和服务已卸载，用户数据已保留在 ${DATA_DIR}。"
-  fi
-}
-
-case "${1:-status}" in
-  start) start_service ;;
-  stop) stop_service ;;
-  restart) restart_service ;;
-  status) show_status ;;
-  update) run_update ;;
-  uninstall)
-    if [ "${2:-}" = "--purge" ]; then
-      uninstall_service yes
-    else
-      uninstall_service no
-    fi
-    ;;
-  *)
-    echo "用法: mdeskctl {start|stop|restart|status|update|uninstall [--purge]}" >&2
-    exit 2
-    ;;
-esac
+exec /bin/bash "${INSTALLER_FILE}" "$@"
 CONTROL_EOF
   normalize_text_file "${CONTROL_SCRIPT}" || return 1
   chmod 755 "${CONTROL_SCRIPT}"
@@ -2116,7 +1689,6 @@ CONTROL_EOF
 }
 
 backup_service_files() {
-  local file=""
   if [ -f "${SYSTEMD_UNIT}" ]; then
     cp -p "${SYSTEMD_UNIT}" "${TEMP_DIR}/backup-systemd-unit" &&
       normalize_text_file "${TEMP_DIR}/backup-systemd-unit" ||
@@ -2171,7 +1743,7 @@ rollback_install() {
   remove_all_service_files || true
 
   if [ "${OLD_INSTALL_EXISTS}" != "yes" ]; then
-    rm -f "${BINARY}" "${CONFIG_FILE}" "${CONFIG_FILE}.tmp" "${CONTROL_BIN}" "${CONTROL_SCRIPT}"
+    rm -f "${BINARY}" "${CONFIG_FILE}" "${CONFIG_FILE}.tmp" "${CONTROL_BIN}" "${CONTROL_SCRIPT}" "${INSTALLER_FILE}"
     rmdir "${INSTALL_DIR}" 2>/dev/null || true
     rmdir "${CONFIG_DIR}" 2>/dev/null || true
     return 0
@@ -2180,6 +1752,9 @@ rollback_install() {
   if [ ! -f "${old_binary}" ]; then
     warn "未找到升级前的二进制备份，无法恢复旧版本。"
     return 1
+  fi
+  if [ "${BINARY}" != "${old_binary_path}" ]; then
+    rm -f "${BINARY}"
   fi
   mkdir -p "$(dirname "${old_binary_path}")"
   if ! install -m 0755 "${old_binary}" "${old_binary_path}"; then
@@ -2228,7 +1803,13 @@ rollback_install() {
 apply_prepared_install() {
   local previous_installed="${PREVIOUS_INSTALLED:-no}"
   local target_service_mode="${SERVICE_MODE}"
+  local target_port="${PORT}"
+  local old_port="${OLD_PORT:-${PORT}}"
 
+  validate_binary "${TEMP_DIR}/MDesk.new" || {
+    warn "待安装的 MDesk 二进制校验失败。"
+    return 1
+  }
   mkdir -p "${INSTALL_DIR}" "${DATA_DIR}" "$(dirname "${PID_FILE}")"
 
   if [ "${previous_installed}" = "yes" ]; then
@@ -2237,8 +1818,17 @@ apply_prepared_install() {
     service_stop || true
     disable_service_registration || true
     remove_all_service_files || true
+
+    PORT="${old_port}"
     if ! wait_port_released; then
-      warn "旧服务停止后端口 ${PORT} 仍被占用，已取消本次安装。"
+      PORT="${target_port}"
+      warn "旧服务停止后端口 ${old_port} 仍被占用，已取消本次安装。"
+      rollback_install || true
+      return 1
+    fi
+    PORT="${target_port}"
+    if port_is_listening; then
+      warn "目标端口 ${PORT} 已被其他程序占用，已取消本次安装。"
       rollback_install || true
       return 1
     fi
@@ -2252,7 +1842,7 @@ apply_prepared_install() {
   fi
 
   if ! save_config || ! write_controller; then
-    warn "无法保存 MDesk 服务配置。"
+    warn "无法保存 MDesk 服务配置或控制脚本。"
     rollback_install || true
     return 1
   fi
@@ -2277,7 +1867,6 @@ apply_prepared_install() {
       return 1
     fi
   fi
-
   return 0
 }
 
@@ -2312,7 +1901,43 @@ queue_detached_update() {
   printf '刷新地址：http://<服务器IP>:%s/@admin\n' "${PORT}"
 }
 
-install_flow() {
+choose_available_port() {
+  local previous_installed="$1"
+  local input=""
+  local active_mode=""
+
+  port_is_listening || return 0
+  if [ "${previous_installed}" = "yes" ] && [ "${PORT}" = "${OLD_PORT}" ]; then
+    active_mode="${SERVICE_MODE}"
+    SERVICE_MODE="${OLD_SERVICE_MODE:-${SERVICE_MODE}}"
+    if service_is_active; then
+      SERVICE_MODE="${active_mode}"
+      return 0
+    fi
+    SERVICE_MODE="${active_mode}"
+  fi
+
+  warn "端口 ${PORT} 已被占用。"
+  if [ ! -r /dev/tty ] && [ ! -t 0 ]; then
+    warn "当前不是交互终端，无法自动更换端口。请使用 MDESK_SERVICE_MODE 或释放该端口后重试。"
+    return 1
+  fi
+
+  while true; do
+    prompt_read_into input "请输入新的监听端口（留空取消）: " || input=""
+    input="$(trim "${input}")"
+    [ -n "${input}" ] || return 1
+    validate_port "${input}"
+    PORT="${input}"
+    if ! port_is_listening; then
+      success "已选择可用端口 ${PORT}。"
+      return 0
+    fi
+    warn "端口 ${PORT} 仍被占用，请换一个。"
+  done
+}
+
+action_install() {
   prepare_install
 
   local previous_installed="no"
@@ -2335,7 +1960,6 @@ install_flow() {
     OLD_CONFIG_EXISTS="no"
   fi
 
-  print_banner
   section "${APP_NAME} 安装向导"
   prompt_read_into input "监听端口 [默认 ${default_port}]: " || input=""
   input="$(trim "${input}")"
@@ -2359,9 +1983,8 @@ install_flow() {
   info "用户数据：${DATA_DIR}"
   info "监听端口：${PORT}"
 
-  if [ "${previous_installed}" = "no" ] && port_is_listening; then
-    die "端口 ${PORT} 已被其他程序占用，请更换端口。"
-  fi
+  choose_available_port "${previous_installed}" ||
+    die "端口 ${PORT} 被占用，已取消安装。"
 
   if [ "${previous_installed}" = "yes" ]; then
     queue_detached_update
@@ -2381,7 +2004,7 @@ install_flow() {
   printf '卸载命令：sudo mdeskctl uninstall\n'
 }
 
-update_flow() {
+action_update() {
   prepare_install
 
   if ! is_installed; then
@@ -2400,29 +2023,172 @@ update_flow() {
   queue_detached_update
 }
 
-uninstall_flow() {
-  local delete_data="no"
-
-  if ! is_installed; then
-    die "未检测到 ${APP_NAME} 安装。"
-  fi
-  if update_in_progress; then
-    die "MDesk 升级任务正在运行，完成后再卸载。"
-  fi
+action_start() {
   load_existing_config
   [ -n "${SERVICE_MODE}" ] || SERVICE_MODE="$(detect_service_mode)"
+  if update_in_progress; then
+    warn "升级任务正在进行中，暂不要启动服务，请稍后再试。"
+    return 1
+  fi
+  info "正在启动 MDesk（模式：$(service_mode_label "${SERVICE_MODE}")）"
+  if service_start && wait_http_ready; then
+    success "MDesk 已启动并通过健康检查。"
+    return 0
+  fi
+  show_service_failure
+  if fallback_to_process_service && wait_http_ready; then
+    success "MDesk 已降级为独立后台进程并通过健康检查。"
+    return 0
+  fi
+  warn "MDesk 启动失败。"
+  return 1
+}
+
+action_stop() {
+  load_existing_config
+  [ -n "${SERVICE_MODE}" ] || SERVICE_MODE="$(detect_service_mode)"
+  if update_in_progress; then
+    warn "升级任务正在进行中，暂不要停止服务，请稍后再试。"
+    return 1
+  fi
+  info "正在停止 MDesk（模式：$(service_mode_label "${SERVICE_MODE}")）"
+  service_stop
+  if wait_port_released; then
+    success "MDesk 已停止，端口 ${PORT} 已释放。"
+    return 0
+  fi
+  warn "服务已停止，但端口 ${PORT} 仍被其他程序占用。"
+  return 1
+}
+
+action_restart() {
+  load_existing_config
+  [ -n "${SERVICE_MODE}" ] || SERVICE_MODE="$(detect_service_mode)"
+  if update_in_progress; then
+    warn "升级任务正在进行中，暂不建议重启，请稍后再试。"
+    return 1
+  fi
+  info "正在重启 MDesk（模式：$(service_mode_label "${SERVICE_MODE}")）"
+  if service_restart && wait_http_ready; then
+    success "MDesk 已重启并通过健康检查。"
+    return 0
+  fi
+  show_service_failure
+  if fallback_to_process_service && wait_http_ready; then
+    success "MDesk 已降级为独立后台进程并通过健康检查。"
+    return 0
+  fi
+  warn "MDesk 重启失败。"
+  return 1
+}
+
+show_update_status() {
+  local state=""
+  local message=""
+  local updated_at=""
+
+  [ -r "${UPDATE_STATUS_FILE}" ] || return 0
+  state="$(read_update_value STATE || true)"
+  message="$(read_update_value MESSAGE || true)"
+  updated_at="$(read_update_value UPDATED_AT || true)"
+  printf '\n最近升级状态：%s\n' "${state:-未知}"
+  [ -z "${message}" ] || printf '说明：%s\n' "${message}"
+  [ -z "${updated_at}" ] || printf '更新时间：%s\n' "${updated_at}"
+  printf '升级日志：%s\n' "${UPDATE_LOG}"
+}
+action_reset_password() {
+  load_existing_config
+  [ -n "${SERVICE_MODE}" ] || SERVICE_MODE="$(detect_service_mode)"
+  if update_in_progress; then
+    warn "升级任务正在进行中，完成后再重置密码。"
+    return 1
+  fi
+  if [ ! -f "${BINARY}" ] || [ ! -x "${BINARY}" ]; then
+    die "二进制文件不存在或者唔可以执行：${BINARY}"
+  fi
+
+  local new_pass
+  local was_running="no"
+  new_pass="$(gen_random_password)"
+  if service_is_active; then
+    was_running="yes"
+  fi
+
+  info "准备重置管理密码，先停止运行中的服务（模式：$(service_mode_label "${SERVICE_MODE}")）"
+  service_stop || true
+  if ! wait_port_released; then
+    warn "服务已停止，但端口 ${PORT} 仍被占用，未执行密码重置。"
+    if [ "${was_running}" = "yes" ]; then
+      action_start || warn "未能恢复原 MDesk 服务，请检查服务状态。"
+    fi
+    return 1
+  fi
+
+  section "执行重置密码：${BINARY} -reset-password '密码'"
+  if ! "${BINARY}" -reset-password "${new_pass}"; then
+    warn "重置密码子程序执行失败。"
+    if [ "${was_running}" = "yes" ]; then
+      action_start || warn "未能恢复原 MDesk 服务，请检查服务状态。"
+    fi
+    return 1
+  fi
+
+  action_start || warn "MDesk 启动失败，请稍后使用 mdeskctl start 重试。"
+  printf '\n%s【新管理密码，请复制保存！】%s\n' "${C_HI}" "${C_RESET}"
+  printf '%s\n' "${new_pass}"
+  printf '\n'
+}
+safe_remove_dir() {
+  local path="$1"
+
+  [ -n "${path}" ] || die "拒绝删除空路径。"
+  validate_install_dir "${path}"
+  [ -d "${path}" ] || return 0
+  rm -rf -- "${path}"
+}
+action_uninstall() {
+  local purge_mode="${1:-ask}"
+  local delete_data="no"
+
+  load_existing_config
+  [ -n "${SERVICE_MODE}" ] || SERVICE_MODE="$(detect_service_mode)"
+  if update_in_progress; then
+    warn "升级任务正在进行中，完成后再卸载。"
+    return 1
+  fi
 
   section "${APP_NAME} 卸载向导"
   info "安装路径：${INSTALL_DIR}"
   info "用户数据：${DATA_DIR}"
+  case "${purge_mode}" in
+    ask)
+      if ! confirm "是否保留用户数据？" "y"; then
+        delete_data="yes"
+      fi
+      ;;
+    purge)
+      delete_data="yes"
+      ;;
+    preserve)
+      delete_data="no"
+      ;;
+    *)
+      die "无效卸载模式：${purge_mode}"
+      ;;
+  esac
 
-  if confirm "是否同时删除用户数据 ${DATA_DIR}？" "n"; then
-    delete_data="yes"
+  if [ "${delete_data}" = "yes" ]; then
+    validate_install_dir "${INSTALL_DIR}"
+    if [ "${DATA_DIR}" != "${INSTALL_DIR}" ]; then
+      validate_install_dir "${DATA_DIR}"
+    fi
   fi
 
+  info "正在停止服务并移除开机启动注册"
   service_stop || true
   disable_service_registration || true
   remove_all_service_files || true
+
   if command -v systemctl >/dev/null 2>&1; then
     systemctl stop "${UPDATER_UNIT}" >/dev/null 2>&1 || true
     systemctl reset-failed "${UPDATER_UNIT}" >/dev/null 2>&1 || true
@@ -2432,132 +2198,173 @@ uninstall_flow() {
     systemctl daemon-reload >/dev/null 2>&1 || true
   fi
 
-  rm -f "${BINARY}" "${LOG_FILE}" "${CONSOLE_LOG}"
+  info "正在删除程序文件"
+  rm -f -- "${BINARY}" "${LOG_FILE}" "${CONSOLE_LOG}" "${PID_FILE}"
   if [ "${delete_data}" = "yes" ]; then
-    if [ "${DATA_DIR}" != "${INSTALL_DIR}" ] && [ -d "${DATA_DIR}" ]; then
+    if [ "${DATA_DIR}" != "${INSTALL_DIR}" ]; then
       safe_remove_dir "${DATA_DIR}"
     fi
-    if [ -d "${INSTALL_DIR}" ]; then
-      safe_remove_dir "${INSTALL_DIR}"
-    fi
+    safe_remove_dir "${INSTALL_DIR}"
   else
     rmdir "${INSTALL_DIR}" 2>/dev/null || true
   fi
 
-  rm -f "${CONTROL_BIN}" "${CONTROL_SCRIPT}" "${INSTALLER_FILE}" \
+  rm -f -- "${CONTROL_BIN}" "${CONTROL_SCRIPT}" "${INSTALLER_FILE}" \
     "${UPDATE_STATUS_FILE}" "${UPDATE_LOG}" "${CONFIG_FILE}" "${CONFIG_FILE}.tmp"
   rmdir "${CONFIG_DIR}" 2>/dev/null || true
 
   if [ "${delete_data}" = "yes" ]; then
-    success "${APP_NAME} 和服务已卸载，用户数据已删除。"
+    success "卸载完成，用户数据目录 ${DATA_DIR} 已删除。"
   else
-    success "${APP_NAME} 和服务已卸载，用户数据已保留在 ${DATA_DIR}。"
+    success "卸载完成，用户数据目录 ${DATA_DIR} 已保留。"
   fi
 }
-
-safe_remove_dir() {
-  local path="$1"
-  validate_install_dir "${path}"
-  rm -rf -- "${path}"
-}
-
-installed_menu() {
-  local choice=""
-  load_existing_config
-  [ -n "${SERVICE_MODE}" ] || SERVICE_MODE="$(detect_service_mode)"
-
+action_guided() {
   print_banner
-  while true; do
-    printf '\n检测到 %s 已安装。\n' "${APP_NAME}"
-    printf '  安装路径：%s\n' "${INSTALL_DIR}"
-    printf '  监听端口：%s\n' "${PORT}"
-    printf '  服务模式：%s\n\n' "$(service_mode_label "${SERVICE_MODE}")"
-    printf '  1) 重新安装或升级（保留用户数据）\n'
-    printf '  2) 重启服务\n'
-    printf '  3) 卸载\n'
-    printf '  4) 退出\n'
-    prompt_read_into choice "请选择 [1]: " || choice=""
-    choice="$(trim "${choice}")"
-    choice="${choice:-1}"
-    case "${choice}" in
-      1) install_flow; return 0 ;;
-      2)
-        if update_in_progress; then
-          warn "升级任务正在进行中，暂不建议重启，请稍后再试。"
-          continue
-        fi
-        info "正在重启 ${APP_NAME} 服务…"
-        if service_restart; then
-          success "${APP_NAME} 服务已重启。"
-        else
-          warn "${APP_NAME} 服务重启失败，请检查服务状态。"
-        fi
+  require_root
+  if is_installed; then
+    OLD_INSTALL_EXISTS="yes"
+    load_existing_config
+    print_install_card
+    print_menu
+    local sel
+    prompt_read_into sel ""
+    sel="${sel:-1}"
+    case "${sel}" in
+      1)
+        info "选择：重新安装 / 升级（保留数据）"
+        action_install
         ;;
-      3) uninstall_flow; return 0 ;;
-      4) info "已退出。"; return 0 ;;
-      *) warn "无效选择：${choice}，请重新输入。" ;;
+      2)
+        info "选择：重启服务"
+        action_restart
+        ;;
+      3)
+        info "选择：重置管理密码"
+        action_reset_password
+        ;;
+      4)
+        info "选择：卸载"
+        action_uninstall
+        ;;
+      5)
+        info "退出"
+        exit 0
+        ;;
+      *)
+        die "无效选项"
+        ;;
     esac
-  done
+  else
+    info "未检测到已安装实例，进入全新安装流程"
+    OLD_INSTALL_EXISTS="no"
+    SERVICE_MODE="$(detect_service_mode)"
+    action_install
+  fi
 }
-
 main() {
   local command="${1:-auto}"
 
   case "${command}" in
-    --update-worker)
-      require_root
-      [ "$(uname -s 2>/dev/null || true)" = "Linux" ] || die "此脚本仅支持 Linux。"
-      shift
-      [ -n "${1:-}" ] || die "缺少升级任务目录。"
-      run_update_worker "$1"
-      exit $?
-      ;;
-    -h|--help|help)
-      usage
-      exit 0
-      ;;
-    status|start|stop|restart)
-      require_root
-      is_installed || die "未检测到 ${APP_NAME} 安装。"
-      load_existing_config
-      [ -n "${SERVICE_MODE}" ] || SERVICE_MODE="$(detect_service_mode)"
-      case "${command}" in
-        status) service_status ;;
-        start) service_start ;;
-        stop) service_stop ;;
-        restart) service_restart ;;
-      esac
-      exit $?
-      ;;
-    install|reinstall)
-      require_root
-      [ "$(uname -s 2>/dev/null || true)" = "Linux" ] || die "此脚本仅支持 Linux。"
-      install_flow
-      ;;
-    update)
-      require_root
-      [ "$(uname -s 2>/dev/null || true)" = "Linux" ] || die "此脚本仅支持 Linux。"
-      update_flow
-      ;;
-    uninstall)
-      require_root
-      [ "$(uname -s 2>/dev/null || true)" = "Linux" ] || die "此脚本仅支持 Linux。"
-      uninstall_flow
-      ;;
-    auto)
-      require_root
-      [ "$(uname -s 2>/dev/null || true)" = "Linux" ] || die "此脚本仅支持 Linux。"
-      if is_installed; then
-        installed_menu
-      else
-        install_flow
-      fi
-      ;;
-    *)
-      usage
-      die "未知命令：${command}"
-      ;;
+      --update-worker)
+        require_root
+        [ "$(uname -s 2>/dev/null || true)" = "Linux" ] || die "此脚本仅支持 Linux。"
+        shift
+        [ -n "${1:-}" ] || die "缺少升级任务目录。"
+        if run_update_worker "$1"; then
+          exit 0
+        else
+          exit 1
+        fi
+        ;;
+      -h|--help|help)
+        usage
+        exit 0
+        ;;
+      install)
+        print_banner
+        require_root
+        [ "$(uname -s 2>/dev/null || true)" = "Linux" ] || die "此脚本仅支持 Linux。"
+        action_install
+        ;;
+      reinstall)
+        print_banner
+        require_root
+        [ "$(uname -s 2>/dev/null || true)" = "Linux" ] || die "此脚本仅支持 Linux。"
+        action_install
+        ;;
+      update)
+        print_banner
+        require_root
+        [ "$(uname -s 2>/dev/null || true)" = "Linux" ] || die "此脚本仅支持 Linux。"
+        action_update
+        ;;
+      uninstall)
+        print_banner
+        require_root
+        [ "$(uname -s 2>/dev/null || true)" = "Linux" ] || die "此脚本仅支持 Linux。"
+        is_installed || die "未检测到 ${APP_NAME} 安装。"
+        case "${2:-ask}" in
+          ask) action_uninstall "ask" ;;
+          --preserve) action_uninstall "preserve" ;;
+          --purge) action_uninstall "purge" ;;
+          *) die "uninstall 仅支持 --preserve 或 --purge。" ;;
+        esac
+        ;;
+      reset-password)
+        print_banner
+        require_root
+        [ "$(uname -s 2>/dev/null || true)" = "Linux" ] || die "此脚本仅支持 Linux。"
+        if ! is_installed; then
+          warn "找不到已安装的 MDesk，无法重置密码"
+          exit 1
+        fi
+        action_reset_password
+        ;;
+      status)
+        print_banner
+        require_root
+        [ "$(uname -s 2>/dev/null || true)" = "Linux" ] || die "此脚本仅支持 Linux。"
+        if ! is_installed; then
+          warn "未检测到 MDesk 安装"
+          exit 1
+        fi
+        load_existing_config
+        [ -n "${SERVICE_MODE}" ] || SERVICE_MODE="$(detect_service_mode)"
+        local status_rc=0
+        service_status || status_rc=$?
+        show_update_status
+        exit "${status_rc}"
+        ;;
+      start)
+        print_banner
+        require_root
+        [ "$(uname -s 2>/dev/null || true)" = "Linux" ] || die "此脚本仅支持 Linux。"
+        is_installed || die "未检测到 ${APP_NAME} 安装。"
+        action_start
+        ;;
+      stop)
+        print_banner
+        require_root
+        [ "$(uname -s 2>/dev/null || true)" = "Linux" ] || die "此脚本仅支持 Linux。"
+        is_installed || die "未检测到 ${APP_NAME} 安装。"
+        action_stop
+        ;;
+      restart)
+        print_banner
+        require_root
+        [ "$(uname -s 2>/dev/null || true)" = "Linux" ] || die "此脚本仅支持 Linux。"
+        is_installed || die "未检测到 ${APP_NAME} 安装。"
+        action_restart
+        ;;
+      auto)
+        [ "$(uname -s 2>/dev/null || true)" = "Linux" ] || die "此脚本仅支持 Linux。"
+        action_guided
+        ;;
+      *)
+        usage
+        die "未知参数，运行 $0 --help 查看用法"
+        ;;
   esac
 }
-
 main "$@"

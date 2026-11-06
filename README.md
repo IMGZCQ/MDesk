@@ -104,7 +104,7 @@ M•Desk 以 Linux 为主要运行环境，同时提供 Windows、Docker 与 fnO
 | Linux amd64 | `MDesk-linux-amd64` | 适用于常见 x86_64 设备 |
 | Linux arm64 | `MDesk-linux-arm64` | 适用于 ARM64 设备 |
 | Linux armv7 | `MDesk-linux-armv7` | 适用于 32 位 ARMv7 设备 |
-| fnOS | `MDesk_2.8.8.fpk` | 支持 amd64 与 arm64 |
+| fnOS | `MDesk_2.8.9.fpk` | 支持 amd64 与 arm64 |
 
 <a id="linux-install"></a>
 
@@ -298,7 +298,7 @@ Docker 管理需要挂载 Docker Socket。文件管理与终端默认只看到�
 
 ### fnOS FPK（平台专用）
 
-1. 从 [Releases](https://github.com/IMGZCQ/MDesk/releases) 下载最新的 `MDesk_2.8.8.fpk`。
+1. 从 [Releases](https://github.com/IMGZCQ/MDesk/releases) 下载最新的 `MDesk_2.8.9.fpk`。
 2. 在 fnOS「应用中心」选择本地安装，上传 FPK 并打开安装向导。
 3. 设置访问端口、访问协议、管理员密码与密码确认。默认协议为 HTTP，默认端口为 `19188`。
 4. 安装完成后，从 fnOS 桌面或按安装时选择的协议和端口打开管理入口。FPK 安装向导已经建立管理员密码，不再走普通 Linux 部署的首次访问设密页面。
@@ -349,6 +349,19 @@ MDesk 使用手册.md      用户使用、部署与参数说明
 > 服务健康检查固定使用 `GET/HEAD /@mdesk/healthz`，与管理入口路径无关；一键安装脚本也使用该端点探测启动状态。
 
 ## 更新日志
+
+### 2.8.9
+
+- 文件管理新增大图标视图，显示文件缩略图和大小，并优化长文件名、搜索结果和移动端布局。
+- 图片预览先显示缩略图，再载入原图，同时预载相邻图片，提升图片切换速度和加载稳定性。
+- 优化分享资源缩略图和公开预览的加载体验。
+
+### M·Desk 管理器 0.1.6
+
+- SSH 主机总览新增操作系统、CPU、内存和存储信息，并缓存已获取的数据以便快速查看。
+- 完善远程连接过程反馈，显示连接步骤和失败原因，并提供重新连接入口。
+- 优化 SSH 主机列表、终端标签和窄窗口布局。
+- 提升静态资源加载速度，完善缓存维护及组网穿透页面的兼容性。
 
 ### 2.8.8
 
