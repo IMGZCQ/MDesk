@@ -158,6 +158,12 @@ print_banner() {
   printf '\n'
 }
 
+clear_screen() {
+  if [ -t 1 ]; then
+    clear 2>/dev/null || printf '\033[2J\033[H'
+  fi
+}
+
 section() {
   local title="$1"
   printf '\n%s├─────────────────────────────────────────────┤%s\n' "${C_DIM}" "${C_RESET}"
@@ -2264,6 +2270,8 @@ action_guided() {
 }
 main() {
   local command="${1:-auto}"
+
+  clear_screen
 
   case "${command}" in
       --update-worker)
