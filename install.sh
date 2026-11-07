@@ -2,6 +2,8 @@
 set -Eeuo pipefail
 umask 022
 readonly APP_NAME="MDesk"
+readonly APP_DISPLAY_NAME="M•Desk"
+readonly APP_DESCRIPTION="高效轻量桌面系统"
 readonly SERVICE_NAME="mdesk"
 readonly DEFAULT_PORT="19188"
 readonly DEFAULT_INSTALL_DIR="/opt/MDesk"
@@ -14,6 +16,10 @@ readonly UPDATE_STATUS_FILE="${CONFIG_DIR}/update.status"
 readonly UPDATE_LOG="${CONFIG_DIR}/update.log"
 readonly UPDATER_UNIT="mdesk-updater.service"
 readonly UPDATER_UNIT_FILE="/run/systemd/system/${UPDATER_UNIT}"
+readonly PASSWORD_RESET_STATUS_FILE="${CONFIG_DIR}/password-reset.status"
+readonly PASSWORD_RESET_LOG="${CONFIG_DIR}/password-reset.log"
+readonly PASSWORD_RESET_UNIT="mdesk-password-reset.service"
+readonly PASSWORD_RESET_UNIT_FILE="/run/systemd/system/${PASSWORD_RESET_UNIT}"
 readonly SYSTEMD_UNIT="/etc/systemd/system/${SERVICE_NAME}.service"
 readonly SYSTEMD_WANTS_LINK="/etc/systemd/system/multi-user.target.wants/${SERVICE_NAME}.service"
 readonly INIT_SCRIPT="/etc/init.d/${SERVICE_NAME}"
@@ -67,10 +73,15 @@ fi
 
 TEMP_DIR=""
 UPDATE_JOB_DIR=""
+PASSWORD_RESET_JOB_DIR=""
 KEEP_TEMP_DIR="no"
 WORKER_ACTIVE="no"
 WORKER_SUCCEEDED="no"
 WORKER_LAUNCHED="no"
+PASSWORD_RESET_WORKER_ACTIVE="no"
+PASSWORD_RESET_WORKER_SUCCEEDED="no"
+PASSWORD_RESET_WORKER_LAUNCHED="no"
+PASSWORD_RESET_WORKER_IS_CHILD="no"
 OLD_INSTALL_EXISTS="no"
 OLD_INSTALL_DIR=""
 OLD_BINARY=""
@@ -115,18 +126,28 @@ cleanup() {
      declare -F write_update_status >/dev/null 2>&1; then
     write_update_status "failed" "升级进程异常结束，请检查 ${UPDATE_LOG}" "$$" || true
   fi
+  if [ "${PASSWORD_RESET_WORKER_ACTIVE}" = "yes" ] &&
+     [ "${PASSWORD_RESET_WORKER_SUCCEEDED}" != "yes" ] &&
+     declare -F write_password_reset_status >/dev/null 2>&1; then
+    write_password_reset_status "failed" "密码重置进程异常结束，请检查 ${PASSWORD_RESET_LOG}" "$$" || true
+  fi
   if [ "${KEEP_TEMP_DIR}" != "yes" ] && [ -n "${TEMP_DIR}" ] && [ -d "${TEMP_DIR}" ]; then
     rm -rf -- "${TEMP_DIR}"
   fi
   if [ "${WORKER_LAUNCHED}" != "yes" ] && [ -n "${UPDATE_JOB_DIR}" ] && [ -d "${UPDATE_JOB_DIR}" ]; then
     rm -rf -- "${UPDATE_JOB_DIR}"
   fi
+  if { [ "${PASSWORD_RESET_WORKER_LAUNCHED}" != "yes" ] ||
+       [ "${PASSWORD_RESET_WORKER_IS_CHILD}" = "yes" ]; } &&
+     [ -n "${PASSWORD_RESET_JOB_DIR}" ] && [ -d "${PASSWORD_RESET_JOB_DIR}" ]; then
+    rm -rf -- "${PASSWORD_RESET_JOB_DIR}"
+  fi
 }
 trap cleanup EXIT
 
 usage() {
   cat <<'EOF'
-MDesk Linux 安装、升级与卸载脚本
+M•Desk Linux 安装、升级与卸载脚本
 用法:
   sudo bash install.sh               自动检测并进入安装/重装/卸载向导
   sudo bash install.sh install       安装或重新安装
@@ -152,7 +173,7 @@ EOF
 print_banner() {
   printf '\n'
   printf '%s┌─────────────────────────────────────────────┐%s\n' "${C_TITLE}" "${C_RESET}"
-  printf '%s│              MDesk · 桌面图标服务            │%s\n' "${C_TITLE}" "${C_RESET}"
+  printf '%s│          M•Desk · 高效轻量桌面系统          │%s\n' "${C_TITLE}" "${C_RESET}"
   printf '%s│      安装 / 升级 / 卸载 一体化脚本           │%s\n' "${C_TITLE}" "${C_RESET}"
   printf '%s└─────────────────────────────────────────────┘%s\n' "${C_TITLE}" "${C_RESET}"
   printf '\n'
@@ -177,7 +198,7 @@ print_install_card() {
   mode_label="$(service_mode_label "${SERVICE_MODE}")"
   printf '\n'
   printf '%s┌─────────────────────────────────────────────┐%s\n' "${C_INFO}" "${C_RESET}"
-  printf '%s│ ✅ 检测到 MDesk 已经安装                     │%s\n' "${C_INFO}" "${C_RESET}"
+  printf '%s│ ✅ 检测到 M•Desk 已经安装                    │%s\n' "${C_INFO}" "${C_RESET}"
   printf '%s├─────────────────────────────────────────────┤%s\n' "${C_INFO}" "${C_RESET}"
   printf '%s│ %s安装路径：%s %-34s │%s\n' "${C_INFO}" "${C_LABEL}" "${C_VAL}" "${INSTALL_DIR}" "${C_RESET}"
   printf '%s│ %s二进制：%s %-34s │%s\n' "${C_INFO}" "${C_LABEL}" "${C_VAL}" "${BINARY}" "${C_RESET}"
@@ -504,7 +525,7 @@ save_config() {
 }
 require_download_tools() {
   command -v curl >/dev/null 2>&1 || command -v wget >/dev/null 2>&1 ||
-    die "需要 curl 或 wget 才能下载 MDesk。"
+    die "需要 curl 或 wget 才能下载 M•Desk。"
   command -v install >/dev/null 2>&1 || die "系统缺少 install 命令。"
   command -v mktemp >/dev/null 2>&1 || die "系统缺少 mktemp 命令。"
 }
@@ -675,7 +696,7 @@ download_from_github() {
 fetch_binary() {
   local destination="$1"
   local mirror_url="${MIRROR_BASE}/MDesk-linux-${ARCH}"
-  info "优先从项目镜像下载 ${APP_NAME}：${mirror_url}"
+  info "优先从项目镜像下载 ${APP_DISPLAY_NAME}：${mirror_url}"
   if download_file "${mirror_url}" "${destination}" && validate_binary "${destination}"; then
     success "项目镜像下载完成"
     return 0
@@ -911,7 +932,7 @@ launch_detached_update() {
   local attempt=0
 
   if update_in_progress; then
-    die "已有 MDesk 升级任务正在运行，请稍后再试。"
+    die "已有 M•Desk 升级任务正在运行，请稍后再试。"
   fi
   persist_installer ||
     die "无法保存安装脚本，不能启动独立升级进程。"
@@ -925,7 +946,7 @@ launch_detached_update() {
     mkdir -p "$(dirname "${unit_file}")"
     cat >"${unit_file}" <<EOF
 [Unit]
-Description=MDesk detached updater
+Description=${APP_DISPLAY_NAME} detached updater
 After=network-online.target
 Wants=network-online.target
 
@@ -1040,8 +1061,8 @@ run_update_worker() {
   if apply_prepared_install; then
     WORKER_SUCCEEDED="yes"
     WORKER_ACTIVE="no"
-    write_update_status "success" "MDesk 已升级并通过健康检查" "$$"
-    success "MDesk 已升级并重新启动。"
+    write_update_status "success" "M•Desk 已升级并通过健康检查" "$$"
+    success "M•Desk 已升级并重新启动。"
     rm -rf -- "${UPDATE_JOB_DIR}"
     return 0
   fi
@@ -1156,7 +1177,7 @@ write_systemd_unit() {
   mkdir -p "$(dirname "${SYSTEMD_UNIT}")"
   cat >"${SYSTEMD_UNIT}" <<EOF
 [Unit]
-Description=MDesk service
+Description=${APP_DISPLAY_NAME} ${APP_DESCRIPTION}
 Documentation=https://github.com/${GITHUB_REPO}
 After=network-online.target
 Wants=network-online.target
@@ -1189,8 +1210,8 @@ write_openrc_script() {
   cat >"${INIT_SCRIPT}" <<EOF
 #!/sbin/openrc-run
 
-name="MDesk"
-description="MDesk service"
+name="${APP_DISPLAY_NAME}"
+description="${APP_DISPLAY_NAME} ${APP_DESCRIPTION}"
 command="${BINARY}"
 command_args="-port ${PORT} -data ${DATA_DIR} -log ${LOG_FILE}"
 directory="${INSTALL_DIR}"
@@ -1216,7 +1237,7 @@ write_sysv_script() {
 # Required-Stop:     \$local_fs \$network \$remote_fs
 # Default-Start:     2 3 4 5
 # Default-Stop:      0 1 6
-# Short-Description: MDesk service
+# Short-Description: ${APP_DISPLAY_NAME} ${APP_DESCRIPTION}
 ### END INIT INFO
 
 NAME="${SERVICE_NAME}"
@@ -1358,7 +1379,7 @@ start_background_process() {
     return 0
   fi
   if port_is_listening; then
-    warn "端口 ${PORT} 已被占用，无法启动后台 MDesk 进程。"
+    warn "端口 ${PORT} 已被占用，无法启动后台 M•Desk 进程。"
     return 1
   fi
 
@@ -1395,7 +1416,7 @@ stop_background_process() {
 
 service_start() {
   if [ "${SERVICE_MODE}" != "process" ] && ! service_is_active && port_is_listening; then
-    warn "端口 ${PORT} 已被占用，无法启动 MDesk 服务。"
+    warn "端口 ${PORT} 已被占用，无法启动 M•Desk 服务。"
     return 1
   fi
 
@@ -1468,14 +1489,14 @@ service_status() {
   case "${SERVICE_MODE}" in
     systemd)
       if ! command -v systemctl >/dev/null 2>&1; then
-        printf '%s 未运行：当前系统没有 systemctl。\n' "${APP_NAME}"
+        printf '%s 未运行：当前系统没有 systemctl。\n' "${APP_DISPLAY_NAME}"
         return 1
       fi
       systemctl status "${SERVICE_NAME}" --no-pager -l
       ;;
     openrc)
       if ! command -v rc-service >/dev/null 2>&1; then
-        printf '%s 未运行：当前系统没有 rc-service。\n' "${APP_NAME}"
+        printf '%s 未运行：当前系统没有 rc-service。\n' "${APP_DISPLAY_NAME}"
         return 1
       fi
       rc-service "${SERVICE_NAME}" status
@@ -1485,10 +1506,10 @@ service_status() {
       ;;
     process)
       if service_is_active; then
-        printf '%s 正在运行，PID %s\n' "${APP_NAME}" "$(cat "${PID_FILE}")"
+        printf '%s 正在运行，PID %s\n' "${APP_DISPLAY_NAME}" "$(cat "${PID_FILE}")"
         return 0
       fi
-      printf '%s 未运行\n' "${APP_NAME}"
+      printf '%s 未运行\n' "${APP_DISPLAY_NAME}"
       return 3
       ;;
     *)
@@ -1546,6 +1567,279 @@ wait_http_ready() {
     fi
     sleep 1
   done
+  return 1
+}
+
+write_password_reset_status() {
+  local state="$1"
+  local message="$2"
+  local pid="${3:-}"
+  local temporary="${PASSWORD_RESET_STATUS_FILE}.tmp.$$"
+
+  mkdir -p "${CONFIG_DIR}"
+  {
+    printf 'STATE=%s\n' "${state}"
+    printf 'MESSAGE=%s\n' "${message}"
+    printf 'PID=%s\n' "${pid}"
+    printf 'UPDATED_AT=%s\n' "$(date '+%Y-%m-%d %H:%M:%S' 2>/dev/null || true)"
+    printf 'LOG=%s\n' "${PASSWORD_RESET_LOG}"
+  } >"${temporary}"
+  chmod 600 "${temporary}" 2>/dev/null || true
+  mv -f "${temporary}" "${PASSWORD_RESET_STATUS_FILE}"
+}
+
+read_password_reset_value() {
+  read_update_value "$1" "${PASSWORD_RESET_STATUS_FILE}"
+}
+
+pid_is_password_reset_worker() {
+  local pid="${1:-}"
+  local cmdline=""
+
+  case "${pid}" in
+    ''|*[!0-9]*) return 1 ;;
+  esac
+  kill -0 "${pid}" 2>/dev/null || return 1
+  cmdline="$(tr '\000' ' ' <"/proc/${pid}/cmdline" 2>/dev/null || true)"
+  case " ${cmdline} " in
+    *" --password-reset-worker "*) return 0 ;;
+  esac
+  return 1
+}
+
+password_reset_in_progress() {
+  local state=""
+  local pid=""
+  local updated_at=""
+  local age=""
+
+  state="$(read_password_reset_value STATE || true)"
+  case "${state}" in
+    starting|waiting|running) ;;
+    *) return 1 ;;
+  esac
+
+  if command -v systemctl >/dev/null 2>&1 &&
+     [ -f "${PASSWORD_RESET_UNIT_FILE}" ] &&
+     systemctl is-active --quiet "${PASSWORD_RESET_UNIT}" 2>/dev/null; then
+    return 0
+  fi
+
+  pid="$(read_password_reset_value PID || true)"
+  if pid_is_password_reset_worker "${pid}"; then
+    return 0
+  fi
+
+  if [ "${state}" = "starting" ]; then
+    updated_at="$(read_password_reset_value UPDATED_AT || true)"
+    age="$(status_age_seconds "${updated_at}" || true)"
+    if [ -z "${age}" ] || [ "${age}" -lt 60 ]; then
+      return 0
+    fi
+  fi
+  return 1
+}
+
+prepare_password_reset_job() {
+  local root="/run"
+
+  if [ ! -d "${root}" ] || [ ! -w "${root}" ]; then
+    root="${TMPDIR:-/var/tmp}"
+    [ -d "${root}" ] || root="/tmp"
+  fi
+  PASSWORD_RESET_JOB_DIR="$(mktemp -d "${root%/}/mdesk-password-reset.XXXXXX")" ||
+    return 1
+  chmod 700 "${PASSWORD_RESET_JOB_DIR}"
+}
+
+write_password_reset_job() {
+  local new_password="$1"
+  local job_file="${PASSWORD_RESET_JOB_DIR}/password-reset.conf"
+
+  {
+    printf 'NEW_PASSWORD=%q\n' "${new_password}"
+    printf 'PORT=%q\n' "${PORT}"
+    printf 'INSTALL_DIR=%q\n' "${INSTALL_DIR}"
+    printf 'BINARY=%q\n' "${BINARY}"
+    printf 'DATA_DIR=%q\n' "${DATA_DIR}"
+    printf 'LOG_FILE=%q\n' "${LOG_FILE}"
+    printf 'CONSOLE_LOG=%q\n' "${CONSOLE_LOG}"
+    printf 'SERVICE_MODE=%q\n' "${SERVICE_MODE}"
+  } >"${job_file}"
+  chmod 600 "${job_file}"
+}
+
+wait_password_reset_worker_ready() {
+  local ready_file="${PASSWORD_RESET_JOB_DIR}/worker.ready"
+  local deadline=$((SECONDS + 15))
+  local pid=""
+  local state=""
+
+  while [ "${SECONDS}" -lt "${deadline}" ]; do
+    if [ -r "${ready_file}" ]; then
+      pid="$(head -n 1 "${ready_file}" 2>/dev/null || true)"
+      if pid_is_password_reset_worker "${pid}"; then
+        return 0
+      fi
+      state="$(read_password_reset_value STATE || true)"
+      [ "${state}" = "failed" ] && return 1
+    fi
+    sleep 1
+  done
+  return 1
+}
+
+wait_password_reset_signal() {
+  local signal_file="${PASSWORD_RESET_JOB_DIR}/start"
+  local deadline=$((SECONDS + 60))
+
+  while [ "${SECONDS}" -lt "${deadline}" ]; do
+    [ -f "${signal_file}" ] && return 0
+    sleep 1
+  done
+  return 1
+}
+
+launch_detached_password_reset() {
+  local unit_file="${PASSWORD_RESET_UNIT_FILE}"
+  local pid=""
+
+  PASSWORD_RESET_WORKER_LAUNCHED="no"
+  write_password_reset_status "starting" "正在启动独立密码重置进程" "$$" || true
+
+  if [ "${SERVICE_MODE}" = "systemd" ] &&
+     command -v systemctl >/dev/null 2>&1 && [ -d /run/systemd/system ]; then
+    mkdir -p "$(dirname "${unit_file}")"
+    cat >"${unit_file}" <<EOF
+[Unit]
+Description=MDesk password reset worker
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/bin/bash "${INSTALLER_FILE}" --password-reset-worker "${PASSWORD_RESET_JOB_DIR}"
+TimeoutStartSec=300
+TimeoutStopSec=30
+Nice=5
+EOF
+    if normalize_text_file "${unit_file}"; then
+      chmod 644 "${unit_file}"
+      if systemctl daemon-reload >/dev/null 2>&1; then
+        systemctl reset-failed "${PASSWORD_RESET_UNIT}" >/dev/null 2>&1 || true
+        if systemctl start --no-block "${PASSWORD_RESET_UNIT}"; then
+          if wait_password_reset_worker_ready; then
+            PASSWORD_RESET_WORKER_LAUNCHED="yes"
+            info "已启动独立密码重置进程。"
+            return 0
+          fi
+          systemctl stop "${PASSWORD_RESET_UNIT}" >/dev/null 2>&1 || true
+          warn "独立密码重置进程未能就绪，正在尝试其他后台方式。"
+        fi
+      fi
+    fi
+    rm -f "${unit_file}"
+    systemctl daemon-reload >/dev/null 2>&1 || true
+  fi
+
+  if command -v setsid >/dev/null 2>&1; then
+    nohup setsid /bin/bash "${INSTALLER_FILE}" --password-reset-worker "${PASSWORD_RESET_JOB_DIR}" \
+      >>"${PASSWORD_RESET_LOG}" 2>&1 </dev/null &
+    pid="$!"
+  else
+    nohup /bin/bash "${INSTALLER_FILE}" --password-reset-worker "${PASSWORD_RESET_JOB_DIR}" \
+      >>"${PASSWORD_RESET_LOG}" 2>&1 </dev/null &
+    pid="$!"
+  fi
+  disown "${pid}" 2>/dev/null || true
+
+  if wait_password_reset_worker_ready; then
+    PASSWORD_RESET_WORKER_LAUNCHED="yes"
+    info "已启动独立密码重置进程（PID ${pid}）。"
+    return 0
+  fi
+
+  kill "${pid}" 2>/dev/null || true
+  return 1
+}
+
+run_password_reset_worker() {
+  local job_dir="${1:-}"
+  local job_file=""
+  local ready_file=""
+
+  PASSWORD_RESET_JOB_DIR="${job_dir}"
+  PASSWORD_RESET_WORKER_LAUNCHED="yes"
+  PASSWORD_RESET_WORKER_ACTIVE="yes"
+  PASSWORD_RESET_WORKER_IS_CHILD="yes"
+  mkdir -p "${CONFIG_DIR}"
+  exec >>"${PASSWORD_RESET_LOG}" 2>&1
+  printf '\n[%s] 独立密码重置进程启动（PID %s）\n' \
+    "$(date '+%Y-%m-%d %H:%M:%S' 2>/dev/null || true)" "$$"
+
+  job_file="${PASSWORD_RESET_JOB_DIR}/password-reset.conf"
+  ready_file="${PASSWORD_RESET_JOB_DIR}/worker.ready"
+  if [ -z "${PASSWORD_RESET_JOB_DIR}" ] || [ ! -r "${job_file}" ]; then
+    write_password_reset_status "failed" "找不到密码重置任务配置" "$$" || true
+    PASSWORD_RESET_WORKER_ACTIVE="no"
+    rm -rf -- "${PASSWORD_RESET_JOB_DIR}"
+    return 1
+  fi
+
+  # shellcheck disable=SC1090
+  . "${job_file}"
+  if [ -z "${NEW_PASSWORD:-}" ]; then
+    write_password_reset_status "failed" "密码重置任务缺少新密码" "$$" || true
+    PASSWORD_RESET_WORKER_ACTIVE="no"
+    rm -rf -- "${PASSWORD_RESET_JOB_DIR}"
+    return 1
+  fi
+
+  write_password_reset_status "waiting" "等待前台确认密码已经显示" "$$"
+  printf '%s\n' "$$" >"${ready_file}"
+  chmod 600 "${ready_file}"
+  if ! wait_password_reset_signal; then
+    write_password_reset_status "failed" "等待前台交接超时，服务未停止" "$$" || true
+    PASSWORD_RESET_WORKER_ACTIVE="no"
+    rm -rf -- "${PASSWORD_RESET_JOB_DIR}"
+    return 1
+  fi
+
+  info "已收到前台交接信号，开始停止服务并重置密码。"
+  write_password_reset_status "running" "正在停止服务并重置管理密码" "$$"
+  service_stop || true
+  if ! wait_port_released; then
+    warn "端口 ${PORT} 仍被占用，未执行密码重置。"
+    action_start || warn "未能恢复原 M•Desk 服务，请检查服务状态。"
+    write_password_reset_status "failed" "端口仍被占用，密码未修改" "$$" || true
+    PASSWORD_RESET_WORKER_ACTIVE="no"
+    rm -rf -- "${PASSWORD_RESET_JOB_DIR}"
+    return 1
+  fi
+
+  section "执行重置密码：${BINARY} -reset-password '密码'"
+  if ! "${BINARY}" -reset-password "${NEW_PASSWORD}"; then
+    warn "重置密码子程序执行失败。"
+    action_start || warn "未能恢复原 M•Desk 服务，请检查服务状态。"
+    write_password_reset_status "failed" "重置密码子程序执行失败，服务已尝试恢复" "$$" || true
+    PASSWORD_RESET_WORKER_ACTIVE="no"
+    rm -rf -- "${PASSWORD_RESET_JOB_DIR}"
+    return 1
+  fi
+
+  write_password_reset_status "running" "密码已重置，正在启动并检查 M•Desk" "$$"
+  if action_start; then
+    PASSWORD_RESET_WORKER_ACTIVE="no"
+    PASSWORD_RESET_WORKER_SUCCEEDED="yes"
+    write_password_reset_status "success" "M•Desk 密码已重置，服务已恢复并通过健康检查" "$$"
+    success "M•Desk 密码已重置并重新启动。"
+    rm -rf -- "${PASSWORD_RESET_JOB_DIR}"
+    return 0
+  fi
+
+  write_password_reset_status "failed" "密码已重置，但 M•Desk 启动失败" "$$" || true
+  PASSWORD_RESET_WORKER_ACTIVE="no"
+  rm -rf -- "${PASSWORD_RESET_JOB_DIR}"
   return 1
 }
 
@@ -1629,7 +1923,7 @@ register_service() {
       ;;
     process)
       if ! write_process_cron; then
-        warn "无法注册开机启动项，仍将继续启动 MDesk 后台进程。"
+        warn "无法注册开机启动项，仍将继续启动 M•Desk 后台进程。"
       fi
       start_background_process || return 1
       if ! command -v crond >/dev/null 2>&1 && ! command -v cron >/dev/null 2>&1; then
@@ -1656,7 +1950,7 @@ fallback_to_process_service() {
   disable_service_registration || true
   remove_all_service_files || true
   if ! wait_port_released; then
-    warn "端口 ${PORT} 仍被占用，无法启动后台 MDesk 进程。"
+    warn "端口 ${PORT} 仍被占用，无法启动后台 M•Desk 进程。"
     return 1
   fi
   SERVICE_MODE="process"
@@ -1675,11 +1969,11 @@ CONFIG_FILE="/etc/mdesk/mdesk.conf"
 INSTALLER_FILE="/etc/mdesk/install.sh"
 
 if [ ! -r "${CONFIG_FILE}" ]; then
-  echo "[错误] 未找到 MDesk 安装配置：${CONFIG_FILE}" >&2
+  echo "[错误] 未找到 M•Desk 安装配置：${CONFIG_FILE}" >&2
   exit 1
 fi
 if [ ! -r "${INSTALLER_FILE}" ]; then
-  echo "[错误] 未找到 MDesk 安装脚本：${INSTALLER_FILE}" >&2
+  echo "[错误] 未找到 M•Desk 安装脚本：${INSTALLER_FILE}" >&2
   exit 1
 fi
 
@@ -1813,7 +2107,7 @@ apply_prepared_install() {
   local old_port="${OLD_PORT:-${PORT}}"
 
   validate_binary "${TEMP_DIR}/MDesk.new" || {
-    warn "待安装的 MDesk 二进制校验失败。"
+    warn "待安装的 M•Desk 二进制校验失败。"
     return 1
   }
   mkdir -p "${INSTALL_DIR}" "${DATA_DIR}" "$(dirname "${PID_FILE}")"
@@ -1842,13 +2136,13 @@ apply_prepared_install() {
   fi
 
   if ! install -m 0755 "${TEMP_DIR}/MDesk.new" "${BINARY}"; then
-    warn "无法写入新的 MDesk 二进制文件。"
+    warn "无法写入新的 M•Desk 二进制文件。"
     rollback_install || true
     return 1
   fi
 
   if ! save_config || ! write_controller; then
-    warn "无法保存 MDesk 服务配置或控制脚本。"
+    warn "无法保存 M•Desk 服务配置或控制脚本。"
     rollback_install || true
     return 1
   fi
@@ -1865,9 +2159,9 @@ apply_prepared_install() {
 
   if ! wait_http_ready; then
     show_service_failure
-    warn "MDesk 未能在预期时间内正常响应。"
+    warn "M•Desk 未能在预期时间内正常响应。"
     if fallback_to_process_service && wait_http_ready; then
-      success "MDesk 已降级为独立后台进程并通过健康检查。"
+      success "M•Desk 已降级为独立后台进程并通过健康检查。"
     else
       rollback_install || true
       return 1
@@ -1901,7 +2195,7 @@ queue_detached_update() {
   launch_detached_update ||
     die "无法启动独立升级进程，旧服务未被修改。"
   success "升级任务已在独立后台继续运行。"
-  printf '即使当前 MDesk 终端断开，升级也会继续完成并自动重启服务。\n'
+  printf '即使当前 M•Desk 终端断开，升级也会继续完成并自动重启服务。\n'
   printf '升级日志：%s\n' "${UPDATE_LOG}"
   printf '完成状态：sudo mdeskctl status\n'
   printf '刷新地址：http://<服务器IP>:%s/@admin\n' "${PORT}"
@@ -1966,7 +2260,7 @@ action_install() {
     OLD_CONFIG_EXISTS="no"
   fi
 
-  section "${APP_NAME} 安装向导"
+  section "${APP_DISPLAY_NAME} 安装向导"
   prompt_read_into input "监听端口 [默认 ${default_port}]: " || input=""
   input="$(trim "${input}")"
   PORT="${input:-${default_port}}"
@@ -2004,7 +2298,7 @@ action_install() {
   apply_prepared_install ||
     die "安装或启动失败，已尝试清理本次安装。"
 
-  success "${APP_NAME} 已安装并启动。"
+  success "${APP_DISPLAY_NAME} 已安装并启动。"
   printf '管理地址：http://<服务器IP>:%s/@admin\n' "${PORT}"
   printf '服务状态：sudo mdeskctl status\n'
   printf '卸载命令：sudo mdeskctl uninstall\n'
@@ -2014,7 +2308,7 @@ action_update() {
   prepare_install
 
   if ! is_installed; then
-    die "未检测到 ${APP_NAME} 安装。"
+    die "未检测到 ${APP_DISPLAY_NAME} 安装。"
   fi
   load_existing_config
   capture_existing_install
@@ -2036,17 +2330,17 @@ action_start() {
     warn "升级任务正在进行中，暂不要启动服务，请稍后再试。"
     return 1
   fi
-  info "正在启动 MDesk（模式：$(service_mode_label "${SERVICE_MODE}")）"
+  info "正在启动 M•Desk（模式：$(service_mode_label "${SERVICE_MODE}")）"
   if service_start && wait_http_ready; then
-    success "MDesk 已启动并通过健康检查。"
+    success "M•Desk 已启动并通过健康检查。"
     return 0
   fi
   show_service_failure
   if fallback_to_process_service && wait_http_ready; then
-    success "MDesk 已降级为独立后台进程并通过健康检查。"
+    success "M•Desk 已降级为独立后台进程并通过健康检查。"
     return 0
   fi
-  warn "MDesk 启动失败。"
+  warn "M•Desk 启动失败。"
   return 1
 }
 
@@ -2057,10 +2351,10 @@ action_stop() {
     warn "升级任务正在进行中，暂不要停止服务，请稍后再试。"
     return 1
   fi
-  info "正在停止 MDesk（模式：$(service_mode_label "${SERVICE_MODE}")）"
+  info "正在停止 M•Desk（模式：$(service_mode_label "${SERVICE_MODE}")）"
   service_stop
   if wait_port_released; then
-    success "MDesk 已停止，端口 ${PORT} 已释放。"
+    success "M•Desk 已停止，端口 ${PORT} 已释放。"
     return 0
   fi
   warn "服务已停止，但端口 ${PORT} 仍被其他程序占用。"
@@ -2074,17 +2368,17 @@ action_restart() {
     warn "升级任务正在进行中，暂不建议重启，请稍后再试。"
     return 1
   fi
-  info "正在重启 MDesk（模式：$(service_mode_label "${SERVICE_MODE}")）"
+  info "正在重启 M•Desk（模式：$(service_mode_label "${SERVICE_MODE}")）"
   if service_restart && wait_http_ready; then
-    success "MDesk 已重启并通过健康检查。"
+    success "M•Desk 已重启并通过健康检查。"
     return 0
   fi
   show_service_failure
   if fallback_to_process_service && wait_http_ready; then
-    success "MDesk 已降级为独立后台进程并通过健康检查。"
+    success "M•Desk 已降级为独立后台进程并通过健康检查。"
     return 0
   fi
-  warn "MDesk 重启失败。"
+  warn "M•Desk 重启失败。"
   return 1
 }
 
@@ -2102,6 +2396,22 @@ show_update_status() {
   [ -z "${updated_at}" ] || printf '更新时间：%s\n' "${updated_at}"
   printf '升级日志：%s\n' "${UPDATE_LOG}"
 }
+
+show_password_reset_status() {
+  local state=""
+  local message=""
+  local updated_at=""
+
+  [ -r "${PASSWORD_RESET_STATUS_FILE}" ] || return 0
+  state="$(read_password_reset_value STATE || true)"
+  message="$(read_password_reset_value MESSAGE || true)"
+  updated_at="$(read_password_reset_value UPDATED_AT || true)"
+  printf '\n最近密码重置状态：%s\n' "${state:-未知}"
+  [ -z "${message}" ] || printf '说明：%s\n' "${message}"
+  [ -z "${updated_at}" ] || printf '更新时间：%s\n' "${updated_at}"
+  printf '重置日志：%s\n' "${PASSWORD_RESET_LOG}"
+}
+
 action_reset_password() {
   load_existing_config
   [ -n "${SERVICE_MODE}" ] || SERVICE_MODE="$(detect_service_mode)"
@@ -2109,40 +2419,46 @@ action_reset_password() {
     warn "升级任务正在进行中，完成后再重置密码。"
     return 1
   fi
+  if password_reset_in_progress; then
+    warn "已有密码重置任务正在运行，请稍后再试。"
+    return 1
+  fi
   if [ ! -f "${BINARY}" ] || [ ! -x "${BINARY}" ]; then
     die "二进制文件不存在或者唔可以执行：${BINARY}"
   fi
 
   local new_pass
-  local was_running="no"
   new_pass="$(gen_random_password)"
-  if service_is_active; then
-    was_running="yes"
+  persist_installer ||
+    die "无法保存安装脚本，不能启动独立密码重置进程。"
+  prepare_password_reset_job ||
+    die "无法创建密码重置任务目录。"
+  if ! write_password_reset_job "${new_pass}"; then
+    rm -rf -- "${PASSWORD_RESET_JOB_DIR}"
+    PASSWORD_RESET_JOB_DIR=""
+    die "无法写入密码重置任务配置。"
   fi
 
-  info "准备重置管理密码，先停止运行中的服务（模式：$(service_mode_label "${SERVICE_MODE}")）"
-  service_stop || true
-  if ! wait_port_released; then
-    warn "服务已停止，但端口 ${PORT} 仍被占用，未执行密码重置。"
-    if [ "${was_running}" = "yes" ]; then
-      action_start || warn "未能恢复原 MDesk 服务，请检查服务状态。"
-    fi
+  info "正在准备独立密码重置进程（模式：$(service_mode_label "${SERVICE_MODE}")）"
+  if ! launch_detached_password_reset; then
+    write_password_reset_status "failed" "无法启动独立密码重置进程，服务未停止" "" || true
+    rm -rf -- "${PASSWORD_RESET_JOB_DIR}"
+    PASSWORD_RESET_JOB_DIR=""
+    warn "无法启动独立密码重置进程，请稍后重试。"
     return 1
   fi
 
-  section "执行重置密码：${BINARY} -reset-password '密码'"
-  if ! "${BINARY}" -reset-password "${new_pass}"; then
-    warn "重置密码子程序执行失败。"
-    if [ "${was_running}" = "yes" ]; then
-      action_start || warn "未能恢复原 MDesk 服务，请检查服务状态。"
-    fi
-    return 1
-  fi
+  printf '\n%s【新管理密码，请立即复制保存！】%s\n' "${C_HI}" "${C_RESET}"
+  printf '%s%s%s\n' "${C_HI}" "${new_pass}" "${C_RESET}"
+  printf '\nM•Desk 将在约 3 秒后由后台任务自动重启。\n'
+  printf '如果当前页面断开，请使用上面的新密码重新登录。\n'
+  sleep 3
 
-  action_start || warn "MDesk 启动失败，请稍后使用 mdeskctl start 重试。"
-  printf '\n%s【新管理密码，请复制保存！】%s\n' "${C_HI}" "${C_RESET}"
-  printf '%s\n' "${new_pass}"
-  printf '\n'
+  printf '\n正在把重置任务交接给后台进程...\n'
+  : >"${PASSWORD_RESET_JOB_DIR}/start"
+  chmod 600 "${PASSWORD_RESET_JOB_DIR}/start"
+  printf '交接完成，即使终端断开，密码重置和服务重启也会继续。\n'
+  printf '稍后可在 SSH 中运行 sudo mdeskctl status 查看结果。\n'
 }
 safe_remove_dir() {
   local path="$1"
@@ -2162,8 +2478,12 @@ action_uninstall() {
     warn "升级任务正在进行中，完成后再卸载。"
     return 1
   fi
+  if password_reset_in_progress; then
+    warn "密码重置任务正在进行中，完成后再卸载。"
+    return 1
+  fi
 
-  section "${APP_NAME} 卸载向导"
+  section "${APP_DISPLAY_NAME} 卸载向导"
   info "安装路径：${INSTALL_DIR}"
   info "用户数据：${DATA_DIR}"
   case "${purge_mode}" in
@@ -2198,8 +2518,11 @@ action_uninstall() {
   if command -v systemctl >/dev/null 2>&1; then
     systemctl stop "${UPDATER_UNIT}" >/dev/null 2>&1 || true
     systemctl reset-failed "${UPDATER_UNIT}" >/dev/null 2>&1 || true
+    systemctl stop "${PASSWORD_RESET_UNIT}" >/dev/null 2>&1 || true
+    systemctl reset-failed "${PASSWORD_RESET_UNIT}" >/dev/null 2>&1 || true
   fi
   rm -f "${UPDATER_UNIT_FILE}"
+  rm -f "${PASSWORD_RESET_UNIT_FILE}"
   if command -v systemctl >/dev/null 2>&1 && [ -d /run/systemd/system ]; then
     systemctl daemon-reload >/dev/null 2>&1 || true
   fi
@@ -2216,7 +2539,8 @@ action_uninstall() {
   fi
 
   rm -f -- "${CONTROL_BIN}" "${CONTROL_SCRIPT}" "${INSTALLER_FILE}" \
-    "${UPDATE_STATUS_FILE}" "${UPDATE_LOG}" "${CONFIG_FILE}" "${CONFIG_FILE}.tmp"
+    "${UPDATE_STATUS_FILE}" "${UPDATE_LOG}" "${PASSWORD_RESET_STATUS_FILE}" \
+    "${PASSWORD_RESET_LOG}" "${CONFIG_FILE}" "${CONFIG_FILE}.tmp"
   rmdir "${CONFIG_DIR}" 2>/dev/null || true
 
   if [ "${delete_data}" = "yes" ]; then
@@ -2274,6 +2598,17 @@ main() {
   clear_screen
 
   case "${command}" in
+      --password-reset-worker)
+        require_root
+        [ "$(uname -s 2>/dev/null || true)" = "Linux" ] || die "此脚本仅支持 Linux。"
+        shift
+        [ -n "${1:-}" ] || die "缺少密码重置任务目录。"
+        if run_password_reset_worker "$1"; then
+          exit 0
+        else
+          exit 1
+        fi
+        ;;
       --update-worker)
         require_root
         [ "$(uname -s 2>/dev/null || true)" = "Linux" ] || die "此脚本仅支持 Linux。"
@@ -2311,7 +2646,7 @@ main() {
         print_banner
         require_root
         [ "$(uname -s 2>/dev/null || true)" = "Linux" ] || die "此脚本仅支持 Linux。"
-        is_installed || die "未检测到 ${APP_NAME} 安装。"
+        is_installed || die "未检测到 ${APP_DISPLAY_NAME} 安装。"
         case "${2:-ask}" in
           ask) action_uninstall "ask" ;;
           --preserve) action_uninstall "preserve" ;;
@@ -2324,7 +2659,7 @@ main() {
         require_root
         [ "$(uname -s 2>/dev/null || true)" = "Linux" ] || die "此脚本仅支持 Linux。"
         if ! is_installed; then
-          warn "找不到已安装的 MDesk，无法重置密码"
+          warn "找不到已安装的 M•Desk，无法重置密码"
           exit 1
         fi
         action_reset_password
@@ -2334,7 +2669,7 @@ main() {
         require_root
         [ "$(uname -s 2>/dev/null || true)" = "Linux" ] || die "此脚本仅支持 Linux。"
         if ! is_installed; then
-          warn "未检测到 MDesk 安装"
+          warn "未检测到 M•Desk 安装"
           exit 1
         fi
         load_existing_config
@@ -2342,27 +2677,28 @@ main() {
         local status_rc=0
         service_status || status_rc=$?
         show_update_status
+        show_password_reset_status
         exit "${status_rc}"
         ;;
       start)
         print_banner
         require_root
         [ "$(uname -s 2>/dev/null || true)" = "Linux" ] || die "此脚本仅支持 Linux。"
-        is_installed || die "未检测到 ${APP_NAME} 安装。"
+        is_installed || die "未检测到 ${APP_DISPLAY_NAME} 安装。"
         action_start
         ;;
       stop)
         print_banner
         require_root
         [ "$(uname -s 2>/dev/null || true)" = "Linux" ] || die "此脚本仅支持 Linux。"
-        is_installed || die "未检测到 ${APP_NAME} 安装。"
+        is_installed || die "未检测到 ${APP_DISPLAY_NAME} 安装。"
         action_stop
         ;;
       restart)
         print_banner
         require_root
         [ "$(uname -s 2>/dev/null || true)" = "Linux" ] || die "此脚本仅支持 Linux。"
-        is_installed || die "未检测到 ${APP_NAME} 安装。"
+        is_installed || die "未检测到 ${APP_DISPLAY_NAME} 安装。"
         action_restart
         ;;
       auto)
