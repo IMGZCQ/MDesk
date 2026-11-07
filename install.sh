@@ -772,6 +772,23 @@ persist_installer() {
   return 1
 }
 
+installer_supports_password_reset_worker() {
+  local file="${1:-}"
+
+  [ -n "${file}" ] && [ -f "${file}" ] && [ -r "${file}" ] && [ -s "${file}" ] &&
+    head -n 1 "${file}" 2>/dev/null | grep -q '^#!.*bash' &&
+    grep -Fq -- '--password-reset-worker' "${file}" &&
+    bash -n "${file}" >/dev/null 2>&1
+}
+
+ensure_password_reset_installer() {
+  if installer_supports_password_reset_worker "${INSTALLER_FILE}"; then
+    chmod 0755 "${INSTALLER_FILE}" 2>/dev/null || return 1
+    return 0
+  fi
+  persist_installer
+}
+
 write_update_status() {
   local state="$1"
   local message="$2"
@@ -2429,7 +2446,7 @@ action_reset_password() {
 
   local new_pass
   new_pass="$(gen_random_password)"
-  persist_installer ||
+  ensure_password_reset_installer ||
     die "无法保存安装脚本，不能启动独立密码重置进程。"
   prepare_password_reset_job ||
     die "无法创建密码重置任务目录。"
