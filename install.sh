@@ -139,6 +139,11 @@ APPCENTER_UPGRADE_ACTIVE="no"
 APPCENTER_UPGRADE_BACKUP=""
 APPCENTER_UPGRADE_STAGING=""
 APPCENTER_REAL_BINARY=""
+APPCENTER_INSTANCE_PID=""
+APPCENTER_CANDIDATE_PIDS=()
+APPCENTER_CANDIDATE_PATHS=()
+APPCENTER_CANDIDATE_VERSIONS=()
+APPCENTER_CANDIDATE_PORTS=()
 
 info() {
   printf '%s[信息]%s %s\n' "${C_INFO}" "${C_RESET}" "$*"
@@ -318,6 +323,8 @@ print_install_card() {
   target_version="$(version_display "${TARGET_VERSION}" "下载后确认")"
   if is_appcenter_managed; then
     source_label="飞牛应用 FPK"
+    [ -z "${APPCENTER_INSTANCE_PID}" ] ||
+      source_label+="（PID ${APPCENTER_INSTANCE_PID}）"
   elif [ "${DIRECT_RUN_DETECTED}" = "yes" ]; then
     source_label="直接运行"
     [ -z "${DIRECT_RUN_PID}" ] || source_label+="（PID ${DIRECT_RUN_PID}）"
@@ -628,18 +635,21 @@ direct_run_path_value() {
       ;;
   esac
 }
-parse_direct_run_args() {
+parse_mdesk_runtime_args() {
+  local runtime_cwd="$1"
+  shift
   local index=0
   local argument=""
   local value=""
-  local count="${#DIRECT_RUN_ARGS[@]}"
+  local count="$#"
+  local -a runtime_args=("$@")
 
   while [ "${index}" -lt "${count}" ]; do
-    argument="${DIRECT_RUN_ARGS[${index}]}"
+    argument="${runtime_args[${index}]}"
     case "${argument}" in
       -port|--port)
         if [ $((index + 1)) -lt "${count}" ]; then
-          value="${DIRECT_RUN_ARGS[$((index + 1))]}"
+          value="${runtime_args[$((index + 1))]}"
           if [[ "${value}" =~ ^[0-9]+$ ]]; then
             PORT="${value}"
           fi
@@ -654,27 +664,32 @@ parse_direct_run_args() {
         ;;
       -data|--data)
         if [ $((index + 1)) -lt "${count}" ]; then
-          value="${DIRECT_RUN_ARGS[$((index + 1))]}"
-          DATA_DIR="$(direct_run_path_value "${DIRECT_RUN_CWD}" "${value}")"
+          value="${runtime_args[$((index + 1))]}"
+          DATA_DIR="$(direct_run_path_value "${runtime_cwd}" "${value}")"
           index=$((index + 1))
         fi
         ;;
       -data=*|--data=*)
-        DATA_DIR="$(direct_run_path_value "${DIRECT_RUN_CWD}" "${argument#*=}")"
+        DATA_DIR="$(direct_run_path_value "${runtime_cwd}" "${argument#*=}")"
         ;;
       -log|--log)
         if [ $((index + 1)) -lt "${count}" ]; then
-          value="${DIRECT_RUN_ARGS[$((index + 1))]}"
-          LOG_FILE="$(direct_run_path_value "${DIRECT_RUN_CWD}" "${value}")"
+          value="${runtime_args[$((index + 1))]}"
+          LOG_FILE="$(direct_run_path_value "${runtime_cwd}" "${value}")"
           index=$((index + 1))
         fi
         ;;
       -log=*|--log=*)
-        LOG_FILE="$(direct_run_path_value "${DIRECT_RUN_CWD}" "${argument#*=}")"
+        LOG_FILE="$(direct_run_path_value "${runtime_cwd}" "${argument#*=}")"
         ;;
     esac
     index=$((index + 1))
   done
+}
+parse_direct_run_args() {
+  if [ "${#DIRECT_RUN_ARGS[@]}" -gt 0 ]; then
+    parse_mdesk_runtime_args "${DIRECT_RUN_CWD}" "${DIRECT_RUN_ARGS[@]}"
+  fi
 }
 set_direct_run_port_arg() {
   local port="$1"
@@ -851,6 +866,10 @@ scan_direct_mdesk_instances() {
       *" (deleted)") executable="${executable% (deleted)}" ;;
     esac
     [ -n "${executable}" ] && [ -f "${executable}" ] && [ -r "${executable}" ] || continue
+    # FPK 托管实例必须走飞牛应用中心，不能混入脚本直接运行实例列表。
+    if is_fnos_appcenter_path "${executable}"; then
+      continue
+    fi
 
     mapfile -d '' -t argv <"/proc/${pid}/cmdline" 2>/dev/null || true
     [ "${#argv[@]}" -gt 0 ] || continue
@@ -951,12 +970,220 @@ print_direct_run_summary() {
   done
   [ -z "${arguments}" ] || info "重启参数：${arguments# }"
 }
+process_option_argument() {
+  local pid="$1"
+  local option="$2"
+  local long_option="--${option#-}"
+  local index=0
+  local argument=""
+  local -a argv=()
+
+  mapfile -d '' -t argv <"/proc/${pid}/cmdline" 2>/dev/null || true
+  for ((index = 0; index < ${#argv[@]}; index++)); do
+    argument="${argv[${index}]}"
+    case "${argument}" in
+      "${option}"|"${long_option}")
+        if [ $((index + 1)) -lt "${#argv[@]}" ]; then
+          printf '%s' "${argv[$((index + 1))]}"
+          return 0
+        fi
+        ;;
+      "${option}"=*|"${long_option}"=*)
+        printf '%s' "${argument#*=}"
+        return 0
+        ;;
+    esac
+  done
+  return 1
+}
+appcenter_process_port() {
+  local pid="$1"
+  local port=""
+
+  port="$(process_option_argument "${pid}" "-port" || true)"
+  if [[ "${port}" =~ ^[0-9]+$ ]] &&
+     [ "${port}" -ge 1 ] && [ "${port}" -le 65535 ]; then
+    printf '%s' "${port}"
+    return 0
+  fi
+  printf '%s' "${DEFAULT_PORT}"
+}
+scan_appcenter_mdesk_instances() {
+  local pid_path=""
+  local pid=""
+  local executable=""
+  local version=""
+  local argument=""
+  local worker_argument="no"
+  local -a argv=()
+  local -A version_cache=()
+
+  APPCENTER_CANDIDATE_PIDS=()
+  APPCENTER_CANDIDATE_PATHS=()
+  APPCENTER_CANDIDATE_VERSIONS=()
+  APPCENTER_CANDIDATE_PORTS=()
+
+  for pid_path in /proc/[0-9]*; do
+    [ -d "${pid_path}" ] || continue
+    pid="${pid_path##*/}"
+    [ "${pid}" = "$$" ] && continue
+    kill -0 "${pid}" 2>/dev/null || continue
+
+    executable="$(readlink "/proc/${pid}/exe" 2>/dev/null || true)"
+    case "${executable}" in
+      *" (deleted)") executable="${executable% (deleted)}" ;;
+    esac
+    is_fnos_appcenter_path "${executable}" || continue
+    case "${executable##*/}" in
+      MDesk|MDesk-*) ;;
+      *) continue ;;
+    esac
+    [ -f "${executable}" ] && [ -r "${executable}" ] || continue
+
+    mapfile -d '' -t argv <"/proc/${pid}/cmdline" 2>/dev/null || true
+    [ "${#argv[@]}" -gt 0 ] || continue
+    [ "${argv[1]:-}" = "--help" ] && continue
+    worker_argument="no"
+    for argument in "${argv[@]}"; do
+      case "${argument}" in
+        --update-worker|--password-reset-worker)
+          worker_argument="yes"
+          break
+          ;;
+      esac
+    done
+    [ "${worker_argument}" = "yes" ] && continue
+
+    if [ -n "${version_cache["${executable}"]:-}" ]; then
+      version="${version_cache["${executable}"]}"
+    else
+      version="$(detect_binary_version "${executable}" || true)"
+      version_cache["${executable}"]="${version:-__none__}"
+    fi
+    [ "${version}" = "__none__" ] && continue
+    [ -n "${version}" ] || continue
+
+    APPCENTER_CANDIDATE_PIDS+=("${pid}")
+    APPCENTER_CANDIDATE_PATHS+=("${executable}")
+    APPCENTER_CANDIDATE_VERSIONS+=("${version}")
+    APPCENTER_CANDIDATE_PORTS+=("$(appcenter_process_port "${pid}")")
+  done
+
+  [ "${#APPCENTER_CANDIDATE_PIDS[@]}" -gt 0 ]
+}
+appcenter_candidate_index() {
+  local wanted_pid="$1"
+  local index=0
+
+  for ((index = 0; index < ${#APPCENTER_CANDIDATE_PIDS[@]}; index++)); do
+    if [ "${APPCENTER_CANDIDATE_PIDS[${index}]}" = "${wanted_pid}" ]; then
+      printf '%s' "${index}"
+      return 0
+    fi
+  done
+  return 1
+}
+select_appcenter_instance_pid() {
+  local pid_file_pid="$1"
+  local index=0
+  local pid=""
+  local port=""
+
+  for ((index = 0; index < ${#APPCENTER_CANDIDATE_PIDS[@]}; index++)); do
+    pid="${APPCENTER_CANDIDATE_PIDS[${index}]}"
+    port="${APPCENTER_CANDIDATE_PORTS[${index}]}"
+    [ "${pid}" = "${pid_file_pid}" ] || continue
+    if pid_owns_listening_port "${pid}" "${port}"; then
+      printf '%s' "${pid}"
+      return 0
+    fi
+  done
+
+  for ((index = 0; index < ${#APPCENTER_CANDIDATE_PIDS[@]}; index++)); do
+    pid="${APPCENTER_CANDIDATE_PIDS[${index}]}"
+    port="${APPCENTER_CANDIDATE_PORTS[${index}]}"
+    if pid_owns_listening_port "${pid}" "${port}"; then
+      printf '%s' "${pid}"
+      return 0
+    fi
+  done
+
+  if [ -n "${pid_file_pid}" ] && appcenter_candidate_index "${pid_file_pid}" >/dev/null; then
+    printf '%s' "${pid_file_pid}"
+    return 0
+  fi
+
+  [ "${#APPCENTER_CANDIDATE_PIDS[@]}" -gt 0 ] || return 1
+  printf '%s' "${APPCENTER_CANDIDATE_PIDS[0]}"
+}
+configure_appcenter_run_instance() {
+  local pid="$1"
+  local executable="$2"
+  local version="$3"
+  local index=0
+  local cwd=""
+  local -a argv=()
+  local -a runtime_args=()
+
+  APPCENTER_INSTANCE_PID="${pid}"
+  BINARY="${executable}"
+  INSTALL_DIR="$(dirname "${executable}")"
+  DATA_DIR="${INSTALL_DIR}/data"
+  LOG_FILE="${INSTALL_DIR}/mdesk.log"
+  CONSOLE_LOG="${INSTALL_DIR}/mdesk-console.log"
+  PORT="${DEFAULT_PORT}"
+  SERVICE_MODE="process"
+  DIRECT_RUN_DETECTED="no"
+  DIRECT_RUN_PID=""
+
+  cwd="$(readlink "/proc/${pid}/cwd" 2>/dev/null || true)"
+  [ -n "${cwd}" ] && [ -d "${cwd}" ] || cwd="${INSTALL_DIR}"
+
+  mapfile -d '' -t argv <"/proc/${pid}/cmdline" 2>/dev/null || true
+  for ((index = 1; index < ${#argv[@]}; index++)); do
+    runtime_args+=("${argv[${index}]}")
+  done
+  if [ "${#runtime_args[@]}" -gt 0 ]; then
+    parse_mdesk_runtime_args "${cwd}" "${runtime_args[@]}"
+  fi
+  INSTALLED_VERSION="${version}"
+}
+infer_appcenter_install() {
+  local pid_file_pid=""
+  local selected_pid=""
+  local selected_index=0
+
+  scan_appcenter_mdesk_instances || return 1
+  if [ -r "${APPCENTER_APP_PID_FILE}" ]; then
+    pid_file_pid="$(head -n 1 "${APPCENTER_APP_PID_FILE}" 2>/dev/null || true)"
+    pid_file_pid="$(trim "${pid_file_pid}")"
+  fi
+
+  selected_pid="$(select_appcenter_instance_pid "${pid_file_pid}" || true)"
+  [ -n "${selected_pid}" ] || return 1
+  selected_index="$(appcenter_candidate_index "${selected_pid}")"
+  configure_appcenter_run_instance \
+    "${selected_pid}" \
+    "${APPCENTER_CANDIDATE_PATHS[${selected_index}]}" \
+    "${APPCENTER_CANDIDATE_VERSIONS[${selected_index}]}"
+
+  if [ "${pid_file_pid}" != "${selected_pid}" ]; then
+    info "已识别飞牛 FPK 主实例：PID ${selected_pid}（监听端口 ${PORT}）；应用中心 PID 文件记录为 ${pid_file_pid:-空}。"
+    if ! write_appcenter_app_pid "${selected_pid}"; then
+      warn "已识别飞牛 FPK 主实例 PID ${selected_pid}，但未能校正 ${APPCENTER_APP_PID_FILE}。"
+    fi
+  fi
+  return 0
+}
 infer_existing_install() {
   local candidate=""
   local name=""
   local dir=""
   local exec_start=""
   local marker="no"
+  if infer_appcenter_install; then
+    return 0
+  fi
   if [ -f "${SYSTEMD_UNIT}" ]; then
     marker="yes"
     exec_start="$(sed -n 's/^ExecStart=//p' "${SYSTEMD_UNIT}" | head -n 1)"
@@ -1053,6 +1280,9 @@ infer_existing_install() {
   return 0
 }
 is_installed() {
+  if infer_appcenter_install; then
+    return 0
+  fi
   if [ -f "${CONFIG_FILE}" ]; then
     return 0
   fi
@@ -1064,6 +1294,9 @@ is_installed() {
   infer_existing_install
 }
 load_existing_config() {
+  if infer_appcenter_install; then
+    return 0
+  fi
   if [ -r "${CONFIG_FILE}" ]; then
     load_config
     return 0
@@ -2179,13 +2412,46 @@ process_is_mdesk_pid() {
   return 1
 }
 
-appcenter_main_pid() {
+appcenter_listening_mdesk_pid() {
+  local port="${1:-${PORT}}"
+  local pid_path=""
   local pid=""
 
-  [ -r "${APPCENTER_APP_PID_FILE}" ] || return 1
-  pid="$(head -n 1 "${APPCENTER_APP_PID_FILE}" 2>/dev/null || true)"
-  process_is_mdesk_pid "${pid}" || return 1
-  printf '%s' "${pid}"
+  for pid_path in /proc/[0-9]*; do
+    [ -d "${pid_path}" ] || continue
+    pid="${pid_path##*/}"
+    [ "${pid}" = "$$" ] && continue
+    process_is_mdesk_pid "${pid}" || continue
+    if pid_owns_listening_port "${pid}" "${port}"; then
+      printf '%s' "${pid}"
+      return 0
+    fi
+  done
+  return 1
+}
+
+appcenter_main_pid() {
+  local pid_file_pid=""
+  local listener_pid=""
+
+  if [ -r "${APPCENTER_APP_PID_FILE}" ]; then
+    pid_file_pid="$(head -n 1 "${APPCENTER_APP_PID_FILE}" 2>/dev/null || true)"
+    pid_file_pid="$(trim "${pid_file_pid}")"
+    if process_is_mdesk_pid "${pid_file_pid}" &&
+       pid_owns_listening_port "${pid_file_pid}" "${PORT}"; then
+      printf '%s' "${pid_file_pid}"
+      return 0
+    fi
+  fi
+
+  listener_pid="$(appcenter_listening_mdesk_pid "${PORT}" || true)"
+  if [ -n "${listener_pid}" ]; then
+    printf '%s' "${listener_pid}"
+    return 0
+  fi
+
+  process_is_mdesk_pid "${pid_file_pid}" || return 1
+  printf '%s' "${pid_file_pid}"
 }
 
 wait_appcenter_main_pid() {
@@ -2518,6 +2784,47 @@ proc_listening_socket_inodes() {
       }
     ' "${file}"
   done | sort -u
+}
+
+pid_owns_listening_port() {
+  local pid="${1:-}"
+  local port="${2:-}"
+  local fd_path=""
+  local target=""
+  local socket_inode=""
+  local inode=""
+  local found_socket="no"
+  local -A listening_inodes=()
+
+  case "${pid}" in
+    ''|*[!0-9]*) return 1 ;;
+  esac
+  [[ "${port}" =~ ^[0-9]+$ ]] || return 1
+  [ -d "/proc/${pid}/fd" ] || return 1
+
+  while IFS= read -r inode; do
+    [ -n "${inode}" ] || continue
+    listening_inodes["${inode}"]="yes"
+    found_socket="yes"
+  done < <(proc_listening_socket_inodes "${port}")
+  [ "${found_socket}" = "yes" ] || return 1
+
+  for fd_path in "/proc/${pid}/fd/"*; do
+    target="$(readlink "${fd_path}" 2>/dev/null || true)"
+    case "${target}" in
+      socket:\[*\])
+        socket_inode="${target#socket:[}"
+        socket_inode="${socket_inode%]}"
+        ;;
+      *)
+        continue
+        ;;
+    esac
+    if [ "${listening_inodes["${socket_inode}"]:-}" = "yes" ]; then
+      return 0
+    fi
+  done
+  return 1
 }
 
 port_is_owned_by_mdesk() {
