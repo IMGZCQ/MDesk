@@ -1,5 +1,5 @@
 {
-  "version": 4,
+  "version": 9,
   "tips": [
     {
       "id": "tip_001",
@@ -47,13 +47,23 @@
       "meta": {}
     },
     {
-      "id": "tip_010",
-      "content": "Linux 一键安装支持后台升级，断开终端后仍会继续并自动重启服务",
+      "id": "tip_012",
+      "content": "M•Desk登录器：集中管理多台设备（官网可下载）",
       "meta": {}
     },
     {
-      "id": "tip_011",
-      "content": "受保护的内网服务可在 M•Desk 内完成 Basic Auth 登录",
+      "id": "tip_013",
+      "content": "在 系统管理 可申请 M•Desk ID 快速访问",
+      "meta": {}
+    },
+    {
+      "id": "tip_014",
+      "content": "点击任务栏的时间可收起/展开 任务按钮",
+      "meta": {}
+    },
+    {
+      "id": "tip_015",
+      "content": "右键 任务栏时间可选择任务栏按钮",
       "meta": {}
     }
   ]
