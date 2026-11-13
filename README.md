@@ -104,7 +104,7 @@ M•Desk 以 Linux 为主要运行环境，同时提供 Windows、Docker 与 fnO
 | Linux amd64 | `MDesk-linux-amd64` | 适用于常见 x86_64 设备 |
 | Linux arm64 | `MDesk-linux-arm64` | 适用于 ARM64 设备 |
 | Linux armv7 | `MDesk-linux-armv7` | 适用于 32 位 ARMv7 设备 |
-| fnOS | `MDesk_2.8.15.fpk` | 支持 amd64 与 arm64 |
+| fnOS | `MDesk_2.8.16.fpk` | 支持 amd64 与 arm64 |
 
 <a id="linux-install"></a>
 
@@ -298,7 +298,7 @@ Docker 管理需要挂载 Docker Socket。文件管理与终端默认只看到�
 
 ### fnOS FPK（平台专用）
 
-1. 从 [Releases](https://github.com/IMGZCQ/MDesk/releases) 下载最新的 `MDesk_2.8.15.fpk`。
+1. 从 [Releases](https://github.com/IMGZCQ/MDesk/releases) 下载最新的 `MDesk_2.8.16.fpk`。
 2. 在 fnOS「应用中心」选择本地安装，上传 FPK 并打开安装向导。
 3. 设置访问端口、访问协议、管理员密码与密码确认。默认协议为 HTTP，默认端口为 `19188`。
 4. 安装完成后，从 fnOS 桌面或按安装时选择的协议和端口打开管理入口。FPK 安装向导已经建立管理员密码，不再走普通 Linux 部署的首次访问设密页面。
@@ -351,6 +351,18 @@ MDesk 使用手册.md      用户使用、部署与参数说明
 > 服务健康检查固定使用 `GET/HEAD /@mdesk/healthz`，与管理入口路径无关；一键安装脚本也使用该端点探测启动状态。
 
 ## 更新日志
+
+### 2.8.16
+
+- 完善任务栏虚拟键盘，新增 Ctrl、Alt 组合键，以及 Tab、Esc、方向键等常用特殊键输入。
+- 完善虚拟鼠标状态处理，在页面失去焦点或指针离开时清理悬停、按键和拖拽状态，避免恢复后残留操作。
+- 优化窄屏及移动端桌面布局，窗口尺寸或屏幕方向变化后重新计算分页与图标排列，减少图标错位。
+- 组网穿透支持自定义隧道实例名称，可在配置标题旁直接重命名；系统托管实例保持只读。
+- 优化隧道配置和运行日志的展开区域，点击标题整行即可收起或展开，刷新与清空操作保持独立。
+
+### M·Desk 管理器 0.1.13
+
+- 修复本地启动状态损坏时管理器无法启动的问题；自动保留损坏文件、尝试从备份恢复，并在无可用备份时安全初始化。
 
 ### 2.8.15
 
