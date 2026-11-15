@@ -104,7 +104,7 @@ M•Desk 以 Linux 为主要运行环境，同时提供 Windows、Docker 与 fnO
 | Linux amd64 | `MDesk-linux-amd64` | 适用于常见 x86_64 设备 |
 | Linux arm64 | `MDesk-linux-arm64` | 适用于 ARM64 设备 |
 | Linux armv7 | `MDesk-linux-armv7` | 适用于 32 位 ARMv7 设备 |
-| fnOS | `MDesk_2.8.16.fpk` | 支持 amd64 与 arm64 |
+| fnOS | `MDesk_2.8.17.fpk` | 支持 amd64 与 arm64 |
 
 <a id="linux-install"></a>
 
@@ -298,7 +298,7 @@ Docker 管理需要挂载 Docker Socket。文件管理与终端默认只看到�
 
 ### fnOS FPK（平台专用）
 
-1. 从 [Releases](https://github.com/IMGZCQ/MDesk/releases) 下载最新的 `MDesk_2.8.16.fpk`。
+1. 从 [Releases](https://github.com/IMGZCQ/MDesk/releases) 下载最新的 `MDesk_2.8.17.fpk`。
 2. 在 fnOS「应用中心」选择本地安装，上传 FPK 并打开安装向导。
 3. 设置访问端口、访问协议、管理员密码与密码确认。默认协议为 HTTP，默认端口为 `19188`。
 4. 安装完成后，从 fnOS 桌面或按安装时选择的协议和端口打开管理入口。FPK 安装向导已经建立管理员密码，不再走普通 Linux 部署的首次访问设密页面。
@@ -351,6 +351,19 @@ MDesk 使用手册.md      用户使用、部署与参数说明
 > 服务健康检查固定使用 `GET/HEAD /@mdesk/healthz`，与管理入口路径无关；一键安装脚本也使用该端点探测启动状态。
 
 ## 更新日志
+
+### 2.8.17
+
+- 完善分享收集页、成员创建分享、主题切换和公开预览字号控制，并增强复制分享链接的兼容性。
+- 优化应用中心窗口图标在桌面、任务栏和窗口切换中的显示一致性。
+- 完善成员应用授权与分享创建选项在窄窗口下的布局和权限提示。
+- 优化静态网站管理界面的表单布局和窄屏显示。
+
+### M·Desk 管理器 0.1.14
+
+- 代理及连接路由配置改为事务保存，保存失败时可恢复原配置；编辑已保存代理时密码留空会继续使用原密码。
+- 修改连接路由后提示已打开的会话重新连接；连接测试直接使用当前填写值，不占用现有连接会话。
+- 完善 SSH 主机系统信息读取、缓存和凭据更新处理。
 
 ### 2.8.16
 
