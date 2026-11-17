@@ -1,0 +1,43 @@
+{
+  "tag_name": "v2.8.19",
+  "html_url": "https://mdesk.imcq.top/releases/",
+  "body": "# M·Desk 2.8.19\n\n## 本次更新内容\n\n### 2.8.19\n\n- 文件管理侧栏暂时收起“已开”标签，保留“收藏 / 本地 / 远程”；修复标签出现横向滚动时无法切换，以及拖动后误触点击。\n- 分享收集页图标视图的勾选框与下载按钮尺寸对齐，桌面、窄屏和列表视图分别保持合适尺寸。\n- 优化系统管理和桌面监控小组件的监控图表，采用主题配色、平滑曲线、自适应刻度与单位，并改善图例和响应式布局。\n\n### M·Desk 管理器 0.1.16\n\n- 解锁进入工作区后自动预加载 SSH 主机数据，无需先打开 SSH 概览，侧栏即可显示全部、收藏和在线数量。\n- MDesk 与 SSH 条目右键菜单新增“新建克隆”，自动预填来源配置和已解锁凭据，保存时创建独立的新条目；SSH 地址或端口变化时清除原主机指纹。\n- 完善管理器登录和解锁页面的焦点控制，Tab 仅在输入框和登录按钮之间切换，点击页面其他区域会返回输入框。\n",
+  "assets": [
+    {
+      "os": "linux",
+      "arch": "amd64",
+      "name": "MDesk-linux-amd64",
+      "urls": [
+        "https://mdesk.imcq.top/releases/MDesk-linux-amd64",
+        "https://github.com/IMGZCQ/MDesk/releases/download/v2.8.19/MDesk-linux-amd64"
+      ],
+      "browser_download_url": "https://mdesk.imcq.top/releases/MDesk-linux-amd64",
+      "size": 31424674,
+      "sha256": "fd71aef9ae68f4cf43a40c1bc4d317cadd4d8d4c8a7f94aa4a895d2b8dfba73f"
+    },
+    {
+      "os": "linux",
+      "arch": "arm64",
+      "name": "MDesk-linux-arm64",
+      "urls": [
+        "https://mdesk.imcq.top/releases/MDesk-linux-arm64",
+        "https://github.com/IMGZCQ/MDesk/releases/download/v2.8.19/MDesk-linux-arm64"
+      ],
+      "browser_download_url": "https://mdesk.imcq.top/releases/MDesk-linux-arm64",
+      "size": 29360290,
+      "sha256": "9c8e7d2ab3b8699c06a077f60802eec9f319fe1c2fc0595831a40d54e7c68db9"
+    },
+    {
+      "os": "linux",
+      "arch": "arm",
+      "name": "MDesk-linux-armv7",
+      "urls": [
+        "https://mdesk.imcq.top/releases/MDesk-linux-armv7",
+        "https://github.com/IMGZCQ/MDesk/releases/download/v2.8.19/MDesk-linux-armv7"
+      ],
+      "browser_download_url": "https://mdesk.imcq.top/releases/MDesk-linux-armv7",
+      "size": 29753506,
+      "sha256": "5fd68ef81672014afde0b04986b9d451c7929f7b1255e0e95f86d987b4df1bcb"
+    }
+  ]
+}
