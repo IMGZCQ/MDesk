@@ -104,7 +104,7 @@ M•Desk 以 Linux 为主要运行环境，同时提供 Windows、Docker 与 fnO
 | Linux amd64 | `MDesk-linux-amd64` | 适用于常见 x86_64 设备 |
 | Linux arm64 | `MDesk-linux-arm64` | 适用于 ARM64 设备 |
 | Linux armv7 | `MDesk-linux-armv7` | 适用于 32 位 ARMv7 设备 |
-| fnOS | `MDesk_2.8.20.fpk` | 支持 amd64 与 arm64 |
+| fnOS | `MDesk_2.8.21.fpk` | 支持 amd64 与 arm64 |
 
 <a id="linux-install"></a>
 
@@ -300,7 +300,7 @@ Docker 管理需要挂载 Docker Socket。文件管理与终端默认只看到�
 
 ### fnOS FPK（平台专用）
 
-1. 从 [Releases](https://github.com/IMGZCQ/MDesk/releases) 下载最新的 `MDesk_2.8.20.fpk`。
+1. 从 [Releases](https://github.com/IMGZCQ/MDesk/releases) 下载最新的 `MDesk_2.8.21.fpk`。
 2. 在 fnOS「应用中心」选择本地安装，上传 FPK 并打开安装向导。
 3. 设置访问端口、访问协议、管理员密码与密码确认。默认协议为 HTTP，默认端口为 `19188`。
 4. 安装完成后，从 fnOS 桌面或按安装时选择的协议和端口打开管理入口。FPK 安装向导已经建立管理员密码，不再走普通 Linux 部署的首次访问设密页面。
@@ -353,6 +353,19 @@ MDesk 使用手册.md      用户使用、部署与参数说明
 > 服务健康检查固定使用 `GET/HEAD /@mdesk/healthz`，与管理入口路径无关；一键安装脚本也使用该端点探测启动状态。
 
 ## 更新日志
+
+### 2.8.21
+
+- 完善密码分享页在 HTTPS 嵌入窗口中的登录与退出，避免第三方嵌入场景下无法保持分享会话。
+- 完善应用入口权限与不可用状态处理：已停用、停止或失效的入口返回 404，无权限成员返回 403，获授权用户仍可从桌面正常进入。
+- 完善收集页分片上传的临时文件与配额清理，在取消、超时或失败后不残留临时文件，也不继续占用空间。
+- 优化 Linux 系统状态中的磁盘拓扑，正确识别飞牛存储池、LVM/RAID/Btrfs 成员、卷及可移动设备。
+- 完善文件管理主页对系统磁盘、存储池、卷和可移动设备的识别与容量展示。
+- 改善 MPK 应用在部分旧版 WebSocket 环境下的连接兼容性。
+
+### M·Desk 管理器 0.1.18
+
+- 同步 M·Desk 2.8.21 的版本与发布信息，并重新构建 Windows 管理器。
 
 ### 2.8.20
 
