@@ -104,7 +104,7 @@ M•Desk 以 Linux 为主要运行环境，同时提供 Windows、Docker 与 fnO
 | Linux amd64 | `MDesk-linux-amd64` | 适用于常见 x86_64 设备 |
 | Linux arm64 | `MDesk-linux-arm64` | 适用于 ARM64 设备 |
 | Linux armv7 | `MDesk-linux-armv7` | 适用于 32 位 ARMv7 设备 |
-| fnOS | `MDesk_2.8.21.fpk` | 支持 amd64 与 arm64 |
+| fnOS | `MDesk_2.8.22.fpk` | 支持 amd64 与 arm64 |
 
 <a id="linux-install"></a>
 
@@ -300,7 +300,7 @@ Docker 管理需要挂载 Docker Socket。文件管理与终端默认只看到�
 
 ### fnOS FPK（平台专用）
 
-1. 从 [Releases](https://github.com/IMGZCQ/MDesk/releases) 下载最新的 `MDesk_2.8.21.fpk`。
+1. 从 [Releases](https://github.com/IMGZCQ/MDesk/releases) 下载最新的 `MDesk_2.8.22.fpk`。
 2. 在 fnOS「应用中心」选择本地安装，上传 FPK 并打开安装向导。
 3. 设置访问端口、访问协议、管理员密码与密码确认。默认协议为 HTTP，默认端口为 `19188`。
 4. 安装完成后，从 fnOS 桌面或按安装时选择的协议和端口打开管理入口。FPK 安装向导已经建立管理员密码，不再走普通 Linux 部署的首次访问设密页面。
