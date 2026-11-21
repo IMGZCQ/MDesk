@@ -334,10 +334,13 @@ app/                   fnOS 应用运行文件与三架构二进制
 cmd/                   fnOS 安装、启动、升级与卸载脚本
 config/                fnOS 权限与资源声明
 wizard/                fnOS 安装向导配置
+releases/              历史编译资产与安装包
 Dockerfile             Docker Hub 多架构镜像构建文件
 manifest               fnOS 应用清单
 MDesk 使用手册.md      用户使用、部署与参数说明
 ```
+
+发布仓库根目录只保留文档、配置与生命周期脚本；FPK、Windows 与 Linux 编译资产统一存放于 `releases/`。
 
 ---
 
