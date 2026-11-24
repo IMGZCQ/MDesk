@@ -104,7 +104,7 @@ M•Desk 以 Linux 为主要运行环境，同时提供 Windows、Docker 与 fnO
 | Linux amd64 | `MDesk-linux-amd64` | 适用于常见 x86_64 设备 |
 | Linux arm64 | `MDesk-linux-arm64` | 适用于 ARM64 设备 |
 | Linux armv7 | `MDesk-linux-armv7` | 适用于 32 位 ARMv7 设备 |
-| fnOS | `MDesk_2.8.25.fpk` | 支持 amd64 与 arm64 |
+| fnOS | `MDesk_2.8.26.fpk` | 支持 amd64 与 arm64 |
 
 <a id="linux-install"></a>
 
@@ -300,7 +300,7 @@ Docker 管理需要挂载 Docker Socket。文件管理与终端默认只看到�
 
 ### fnOS FPK（平台专用）
 
-1. 从 [Releases](https://github.com/IMGZCQ/MDesk/releases) 下载最新的 `MDesk_2.8.25.fpk`。
+1. 从 [Releases](https://github.com/IMGZCQ/MDesk/releases) 下载最新的 `MDesk_2.8.26.fpk`。
 2. 在 fnOS「应用中心」选择本地安装，上传 FPK 并打开安装向导。
 3. 设置访问端口、访问协议、管理员密码与密码确认。默认协议为 HTTP，默认端口为 `19188`。
 4. 安装完成后，从 fnOS 桌面或按安装时选择的协议和端口打开管理入口。FPK 安装向导已经建立管理员密码，不再走普通 Linux 部署的首次访问设密页面。
@@ -356,6 +356,19 @@ MDesk 使用手册.md      用户使用、部署与参数说明
 > 服务健康检查固定使用 `GET/HEAD /@mdesk/healthz`，与管理入口路径无关；一键安装脚本也使用该端点探测启动状态。
 
 ## 更新日志
+
+### 2.8.26
+
+- 应用中心显示 MPK 应用声明的支持架构，并在安装、升级确认页提示设备架构兼容信息。
+- 分享管理列表中的分享路径增加快捷复制按钮，复制后即时显示操作反馈。
+- Cloudflare Tunnel 公网地址复制时保留本地服务路径；隧道链接、组网 IP 和配置路径默认收起，可通过按钮展开查看。
+- 桌面监控组件新增“缓 / 慢 / 中 / 快 / 疾”五档刷新频率，设置会持久保留。
+- 调整系统设置账号区域：直接显示当前用户名，将修改密码入口与账号信息并列，头像管理集中在右侧。
+- 一键安装脚本优化安装界面配色；应用中心升级无法识别新二进制版本号时，按目标版本继续执行升级。
+
+### M·Desk 管理器 0.1.23
+
+- 调整界面样式布局，及其他细节调整。
 
 ### 2.8.25
 

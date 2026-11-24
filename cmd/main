@@ -1,91 +1,404 @@
 #!/bin/bash
 
-# 根据当前机器架构选择随包分发的二进制。
+# The package manager only tracks the callback shell. MDesk runs in a
+# detached session, so lifecycle operations must find the real app process
+# by executable path rather than trusting one PID file.
 set_bin() {
 	ARCH="$(uname -m 2>/dev/null)"
 	case "$ARCH" in
 		x86_64|amd64) BIN="$TRIM_APPDEST/bin/MDesk-amd64" ;;
 		aarch64|arm64) BIN="$TRIM_APPDEST/bin/MDesk-arm64" ;;
 		*)
-			echo "不支持的 CPU 架构: $ARCH" >>"$TRIM_TEMP_LOGFILE"
+			append_log "不支持的 CPU 架构: $ARCH"
 			exit 1
 			;;
 	esac
+	BIN_REAL="$(readlink -f "$BIN" 2>/dev/null || true)"
 }
+
+append_log() {
+	if [ -n "${TRIM_TEMP_LOGFILE:-}" ]; then
+		printf '%s\n' "$*" >>"$TRIM_TEMP_LOGFILE"
+	fi
+}
+
 set_bin
-# 共享目录以系统变量 TRIM_DATA_SHARE_PATHS 为准（多个以 : 分隔，本应用只声明一个）
+
+# The package declares one data share. Keep the first entry if fnOS ever
+# returns multiple paths.
 SHARE_DIR="${TRIM_DATA_SHARE_PATHS%%:*}"
 if [ -z "$SHARE_DIR" ]; then
-	echo "未能获取共享目录 TRIM_DATA_SHARE_PATHS" >>"$TRIM_TEMP_LOGFILE"
+	append_log "未能获取数据目录 TRIM_DATA_SHARE_PATHS"
 	exit 1
 fi
-mkdir -p "$SHARE_DIR"
+
+mkdir -p "$SHARE_DIR" "$TRIM_PKGVAR" || exit 1
 DATA_DIR="$SHARE_DIR/data"
 PID_FILE="$TRIM_PKGVAR/app.pid"
+LOCK_FILE="$TRIM_PKGVAR/app.lock"
 LOG_FILE="$SHARE_DIR/运行日志.log"
 PORT="${wizard_port:-${TRIM_SERVICE_PORT:-19188}}"
 SCHEME="${wizard_scheme:-http}"
 
-# 兼容旧版本数据目录：迁移自 TRIM_PKGVAR/data
+# Migrate the pre-2.8 package data directory once.
 if [ -d "$TRIM_PKGVAR/data" ] && [ ! -d "$DATA_DIR" ]; then
 	mkdir -p "$SHARE_DIR"
 	mv "$TRIM_PKGVAR/data" "$DATA_DIR"
 fi
 
-# 清理旧版本日志路径
+# Old package versions wrote app.log in the private package directory.
 rm -f "$TRIM_PKGVAR/app.log" 2>/dev/null || true
 
-start() {
+validate_config() {
 	case "$SCHEME" in
 		http|https) ;;
 		*)
-			echo "访问协议无效: $SCHEME" >>"$TRIM_TEMP_LOGFILE"
-			exit 1
+			append_log "访问协议无效: $SCHEME"
+			return 1
 			;;
 	esac
-	mkdir -p "$DATA_DIR" "$SHARE_DIR"
+	case "$PORT" in
+		""|*[!0-9]*)
+			append_log "访问端口无效: $PORT"
+			return 1
+			;;
+	esac
+	if [ "$PORT" -lt 1 ] || [ "$PORT" -gt 65535 ]; then
+		append_log "访问端口无效: $PORT"
+		return 1
+	fi
+	if [ ! -x "$BIN" ]; then
+		append_log "MDesk 程序不存在或不可执行: $BIN"
+		return 1
+	fi
+}
+
+process_alive() {
+	pid="$1"
+	case "$pid" in
+		""|*[!0-9]*) return 1 ;;
+	esac
+	[ -d "/proc/$pid" ] || return 1
+	state="$(ps -o stat= -p "$pid" 2>/dev/null | awk 'NR == 1 {print $1}')"
+	case "$state" in
+		""|Z*) return 1 ;;
+	esac
+	return 0
+}
+
+owns_bin() {
+	pid="$1"
+	exe="$(readlink "/proc/$pid/exe" 2>/dev/null || true)"
+	[ "$exe" = "$BIN" ] ||
+		{ [ -n "$BIN_REAL" ] && [ "$exe" = "$BIN_REAL" ]; } ||
+		[ "$exe" = "$BIN (deleted)" ] ||
+		{ [ -n "$BIN_REAL" ] && [ "$exe" = "$BIN_REAL (deleted)" ]; }
+}
+
+app_roots() {
+	result=""
+	for proc_dir in /proc/[0-9]*; do
+		[ -d "$proc_dir" ] || continue
+		pid="${proc_dir##*/}"
+		[ "$pid" = "$$" ] && continue
+		if owns_bin "$pid"; then
+			result="$result $pid"
+		fi
+	done
+	if [ -f "$PID_FILE" ]; then
+		pid="$(tr -dc '0-9' <"$PID_FILE" 2>/dev/null)"
+		if process_alive "$pid" && owns_bin "$pid"; then
+			result="$result $pid"
+		fi
+	fi
+	printf '%s\n' "$result"
+}
+
+children_of() {
+	pid="$1"
+	cat "/proc/$pid/task/$pid/children" 2>/dev/null || true
+}
+
+append_tree() {
+	pid="$1"
+	TREE_PIDS="$TREE_PIDS $pid"
+	for child in $(children_of "$pid"); do
+		append_tree "$child"
+	done
+}
+
+tree_pids() {
+	roots="$1"
+	TREE_PIDS=""
+	for pid in $roots; do
+		append_tree "$pid"
+	done
+	printf '%s\n' "$TREE_PIDS"
+}
+
+unique_pids() {
+	seen=" "
+	result=""
+	for pid in $1; do
+		case "$seen" in
+			*" $pid "*) continue ;;
+		esac
+		seen="$seen$pid "
+		result="$result $pid"
+	done
+	printf '%s\n' "$result"
+}
+
+process_group() {
+	ps -o pgid= -p "$1" 2>/dev/null | awk 'NR == 1 {gsub(/ /, ""); print $1}'
+}
+
+send_signal() {
+	signal="$1"
+	roots="$2"
+	tree="$3"
+	sent_groups=" "
+
+	# A process started by this script is a session and process-group
+	# leader. Killing that group also removes cloudflared and other helpers.
+	for pid in $roots; do
+		pgid="$(process_group "$pid")"
+		if [ -n "$pgid" ] && [ "$pgid" = "$pid" ]; then
+			case "$sent_groups" in
+				*" $pgid "*) ;;
+				*)
+					kill "-$signal" -- "-$pgid" 2>/dev/null || true
+					sent_groups="$sent_groups$pgid "
+					;;
+			esac
+		fi
+	done
+
+	for pid in $tree; do
+		kill "-$signal" "$pid" 2>/dev/null || true
+	done
+}
+
+tree_alive() {
+	for pid in $1; do
+		if process_alive "$pid"; then
+			return 0
+		fi
+	done
+	return 1
+}
+
+stop_all() {
+	roots="$(app_roots)"
+	roots="$(unique_pids "$roots")"
+	if [ -z "${roots// /}" ]; then
+		rm -f "$PID_FILE"
+		return 0
+	fi
+
+	tree="$(tree_pids "$roots")"
+	tree="$(unique_pids "$tree")"
+	send_signal TERM "$roots" "$tree"
+
+	i=0
+	while [ "$i" -lt 50 ]; do
+		if ! tree_alive "$tree"; then
+			rm -f "$PID_FILE"
+			return 0
+		fi
+		i=$((i + 1))
+		sleep 0.2
+	done
+
+	# Refresh descendants in case a still-running parent created new helpers
+	# during the graceful shutdown window.
+	current_roots="$(app_roots)"
+	current_roots="$(unique_pids "$current_roots")"
+	current_tree="$(tree_pids "$current_roots")"
+	all_tree="$(unique_pids "$tree $current_tree")"
+	send_signal KILL "$current_roots" "$all_tree"
+
+	i=0
+	while [ "$i" -lt 25 ]; do
+		if ! tree_alive "$all_tree"; then
+			rm -f "$PID_FILE"
+			return 0
+		fi
+		i=$((i + 1))
+		sleep 0.2
+	done
+
+	append_log "无法停止旧的 MDesk 进程:$(unique_pids "$(app_roots)")"
+	return 1
+}
+
+port_in_use() {
+	if command -v ss >/dev/null 2>&1; then
+		[ -n "$(ss -H -ltn "sport = :$PORT" 2>/dev/null)" ]
+		return
+	fi
+	if command -v netstat >/dev/null 2>&1; then
+		netstat -ltn 2>/dev/null | awk -v port=":$PORT" '$4 ~ port "$" {found=1} END {exit !found}'
+		return
+	fi
+	return 1
+}
+
+listener_belongs_to() {
+	pid="$1"
+	command -v ss >/dev/null 2>&1 || return 0
+	listeners="$(ss -H -ltnp "sport = :$PORT" 2>/dev/null || true)"
+	[ -n "$listeners" ] || return 1
+	case "$listeners" in
+		*"pid="*)
+			printf '%s\n' "$listeners" | grep -F "pid=$pid," >/dev/null 2>&1
+			;;
+		*) return 0 ;;
+	esac
+}
+
+http_ready() {
+	command -v curl >/dev/null 2>&1 || return 0
+	url="$SCHEME://127.0.0.1:$PORT/"
+	case "$SCHEME" in
+		https)
+			code="$(curl -k -sS -o /dev/null -w '%{http_code}' --noproxy '*' \
+				--connect-timeout 1 --max-time 2 "$url" 2>/dev/null || true)"
+			;;
+		*)
+			code="$(curl -sS -o /dev/null -w '%{http_code}' --noproxy '*' \
+				--connect-timeout 1 --max-time 2 "$url" 2>/dev/null || true)"
+			;;
+	esac
+	[ -n "$code" ] && [ "$code" != "000" ]
+}
+
+wait_for_new_process() {
+	i=0
+	while [ "$i" -lt 80 ]; do
+		for pid in $(app_roots); do
+			if ! process_alive "$pid"; then
+				continue
+			fi
+			exe="$(readlink "/proc/$pid/exe" 2>/dev/null || true)"
+			case "$exe" in
+				*" (deleted)") continue ;;
+			esac
+			if { [ "$exe" = "$BIN" ] ||
+				{ [ -n "$BIN_REAL" ] && [ "$exe" = "$BIN_REAL" ]; }; } &&
+				listener_belongs_to "$pid" &&
+				http_ready; then
+				printf '%s\n' "$pid"
+				return 0
+			fi
+		done
+		i=$((i + 1))
+		sleep 0.25
+	done
+	return 1
+}
+
+native_binary_supported() {
+	magic="$(od -An -tx1 -N4 "$BIN" 2>/dev/null | tr -d ' \n')"
+	[ "$magic" = "7f454c46" ] || return 1
+
+	machine="$(od -An -tx1 -j18 -N2 "$BIN" 2>/dev/null | tr -d ' \n')"
+	case "$ARCH" in
+		x86_64|amd64) [ "$machine" = "3e00" ] || [ "$machine" = "003e" ] ;;
+		aarch64|arm64) [ "$machine" = "b700" ] || [ "$machine" = "00b7" ] ;;
+		*) return 1 ;;
+	esac
+}
+
+start_app() {
+	validate_config || return 1
+	if ! native_binary_supported; then
+		append_log "MDesk 安装文件与当前 Linux 系统不兼容，请通过飞牛应用中心重新安装当前版本安装包。"
+		return 1
+	fi
+
+	if command -v flock >/dev/null 2>&1; then
+		exec 9>"$LOCK_FILE"
+		flock -x 9
+	fi
+
+	if ! stop_all; then
+		command -v flock >/dev/null 2>&1 && flock -u 9
+		return 1
+	fi
+	if port_in_use; then
+		append_log "端口已被占用，请更换端口。端口: $PORT"
+		command -v flock >/dev/null 2>&1 && flock -u 9
+		return 1
+	fi
+
+	mkdir -p "$DATA_DIR" "$SHARE_DIR" || {
+		append_log "无法创建 MDesk 数据目录"
+		command -v flock >/dev/null 2>&1 && flock -u 9
+		return 1
+	}
 	chown -R "$TRIM_USERNAME:$TRIM_GROUPNAME" "$TRIM_PKGVAR" "$SHARE_DIR" 2>/dev/null || true
-	# 以 root 运行服务：文件管理需访问 /vol1 等系统目录，
-	# 降权为专属用户会因权限不足无法读取存储池。
-	# 运行日志由程序自身按 5MB 轮转（保留 3 份历史），这里不再重定向追加。
-	env \
+
+	if ! command -v setsid >/dev/null 2>&1; then
+		append_log "系统缺少 setsid，无法安全启动 MDesk"
+		command -v flock >/dev/null 2>&1 && flock -u 9
+		return 1
+	fi
+
+	setsid env \
 		TRIM_SERVICE_PORT="$PORT" \
 		HOME="$TRIM_PKGHOME" \
-		"$BIN" -port "$PORT" -scheme "$SCHEME" -data "$DATA_DIR" -log "$LOG_FILE" >/dev/null 2>&1 &
-	echo $! >"$PID_FILE"
-	sleep 1
-	if ! kill -0 "$(cat "$PID_FILE")" 2>/dev/null; then
-		echo "M•Desk 启动失败，请检查端口 $PORT 是否被占用，日志见 $LOG_FILE" >>"$TRIM_TEMP_LOGFILE"
-		exit 1
+		"$BIN" -port "$PORT" -scheme "$SCHEME" -data "$DATA_DIR" -log "$LOG_FILE" \
+		</dev/null >/dev/null 2>&1 9>&- &
+
+	if pid="$(wait_for_new_process)"; then
+		printf '%s\n' "$pid" >"$PID_FILE"
+	else
+		append_log "MDesk 启动失败，请检查端口 $PORT 是否已被占用以及运行日志: $LOG_FILE"
+		if [ -f "$LOG_FILE" ]; then
+			tail -n 20 "$LOG_FILE" >>"${TRIM_TEMP_LOGFILE:-/dev/null}" 2>/dev/null || true
+		fi
+		stop_all || true
+		command -v flock >/dev/null 2>&1 && flock -u 9
+		return 1
 	fi
-	exit 0
+
+	command -v flock >/dev/null 2>&1 && flock -u 9
+	return 0
 }
 
-stop() {
-	if [ -f "$PID_FILE" ]; then
-		kill "$(cat "$PID_FILE")" 2>/dev/null || true
-		rm -f "$PID_FILE"
+stop_app() {
+	if command -v flock >/dev/null 2>&1; then
+		exec 9>"$LOCK_FILE"
+		flock -x 9
 	fi
-	pkill -f "$BIN -port" 2>/dev/null || true
-	exit 0
+	stop_all
+	rc=$?
+	command -v flock >/dev/null 2>&1 && flock -u 9
+	return "$rc"
 }
 
-status() {
-	if [ -f "$PID_FILE" ] && kill -0 "$(cat "$PID_FILE")" 2>/dev/null; then
-		exit 0
+status_app() {
+	[ -f "$PID_FILE" ] || exit 3
+	pid="$(tr -dc '0-9' <"$PID_FILE" 2>/dev/null)"
+	if ! process_alive "$pid" || ! owns_bin "$pid"; then
+		exit 3
 	fi
-	if pgrep -f "$BIN -port" >/dev/null 2>&1; then
-		exit 0
-	fi
-	exit 3
+	exe="$(readlink "/proc/$pid/exe" 2>/dev/null || true)"
+	case "$exe" in
+		*" (deleted)") exit 3 ;;
+	esac
+	listener_belongs_to "$pid" || exit 3
+	http_ready || exit 3
+	exit 0
 }
 
 case "$1" in
-	start) start ;;
-	stop) stop ;;
-	status) status ;;
+	start|restart) start_app ;;
+	stop) stop_app ;;
+	status) status_app ;;
 	*)
-		echo "未知操作: $1" >>"$TRIM_TEMP_LOGFILE"
+		append_log "未知操作: $1"
 		exit 1
 		;;
 esac
