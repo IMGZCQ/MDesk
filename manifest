@@ -1,5 +1,5 @@
 appname=mdesk
-version=2.8.26
+version=2.8.27
 display_name=M•Desk
 desc=M•Desk 是新一代轻量服务器的桌面管理系统，以 Linux 为主要运行环境，同时支持 Docker、Windows 与飞牛 fnOS FPK；通过单一管理入口，把分散的服务、文件与运行维护能力收束到同一张桌面。<br><b>定位与部署</b> · Linux 一键脚本覆盖 amd64、arm64 与 armv7，并适配 systemd、OpenRC、SysV 或独立后台进程；独立二进制、Docker Compose、Windows 服务版／桌面版与 FPK 均为正式部署方式。<br><b>服务入口与应用中心</b> · 统一管理服务路由，支持域名绑定、直连与快速切换；应用中心按 M•Desk 原生应用、1Panel 源与 CasaOS 源分区，并可扫描 fnOS 应用中心，将端口、Unix Socket 与 CGI 应用接入桌面。<br><b>终端、文件与内容交付</b> · 提供多会话保活终端、多窗口文件管理、在线预览与编辑、压缩解压、外链分享和访客上传；目录可发布为静态网站，支持默认主页、目录浏览与域名绑定。<br><b>连接与运行维护</b> · 多实例管理 FRPC、FRPS、EasyTier 与 Cloudflare Tunnel；集中管理 Docker 容器、Compose、镜像、网络和更新，查看进程、端口、CPU、内存、GPU、磁盘、SMART、网络与资源趋势，并提供端口诊断。<br><b>跨模块体验</b> · 11 个核心模块共享 18 套主题、头像与壁纸、三种密度、六种界面风格、八套图标套装和单击／双击打开方式；支持多用户、成员能力、授权目录与配额隔离，可从登录页远程接管其他 M•Desk 实例。<br><b>版本与数据</b> · Linux 管理员可在系统状态执行带架构、文件大小与 SHA-256 校验的自动更新；独立后台任务支持 fnOS FPK、systemd 与独立进程安装，包含健康检查、版本探测和失败自动回滚。Windows 维持手动下载升级，Docker 保留独立镜像更新流程。卸载默认保留数据，只有明确选择彻底删除时才清除配置、凭据、分享记录与日志。<br>
 source=thirdparty
@@ -16,5 +16,5 @@ ctl_stop=true
 service_port=19188
 checkport=true
 disable_authorization_path=true
-changelog=2.8.26 更新：应用中心显示 MPK 应用声明的支持架构，并在安装、升级确认页提示设备架构兼容信息；分享管理列表增加分享路径快捷复制；Cloudflare Tunnel 公网地址复制保留本地服务路径，并默认收起敏感地址字段；桌面监控组件新增五档刷新频率；调整系统设置账号区域布局；一键安装脚本优化安装界面配色，并改进应用中心升级版本识别。M·Desk 管理器 0.1.23 更新：调整界面样式布局及其他细节。
+changelog=2.8.27 更新：优化桌面窗口通知与复制反馈；完善 Cloudflare Tunnel 单选、地址补全、一键复制与折叠交互；隧道实例支持重命名和名称校验；远程存储地址自动补全并支持直接打开本机或已挂载目录；优化成员应用授权在窄窗口下的控件布局。
 

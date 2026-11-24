@@ -104,7 +104,7 @@ M•Desk 以 Linux 为主要运行环境，同时提供 Windows、Docker 与 fnO
 | Linux amd64 | `MDesk-linux-amd64` | 适用于常见 x86_64 设备 |
 | Linux arm64 | `MDesk-linux-arm64` | 适用于 ARM64 设备 |
 | Linux armv7 | `MDesk-linux-armv7` | 适用于 32 位 ARMv7 设备 |
-| fnOS | `MDesk_2.8.26.fpk` | 支持 amd64 与 arm64 |
+| fnOS | `MDesk_2.8.27.fpk` | 支持 amd64 与 arm64 |
 
 <a id="linux-install"></a>
 
@@ -300,7 +300,7 @@ Docker 管理需要挂载 Docker Socket。文件管理与终端默认只看到�
 
 ### fnOS FPK（平台专用）
 
-1. 从 [Releases](https://github.com/IMGZCQ/MDesk/releases) 下载最新的 `MDesk_2.8.26.fpk`。
+1. 从 [Releases](https://github.com/IMGZCQ/MDesk/releases) 下载最新的 `MDesk_2.8.27.fpk`。
 2. 在 fnOS「应用中心」选择本地安装，上传 FPK 并打开安装向导。
 3. 设置访问端口、访问协议、管理员密码与密码确认。默认协议为 HTTP，默认端口为 `19188`。
 4. 安装完成后，从 fnOS 桌面或按安装时选择的协议和端口打开管理入口。FPK 安装向导已经建立管理员密码，不再走普通 Linux 部署的首次访问设密页面。
@@ -334,13 +334,10 @@ app/                   fnOS 应用运行文件与三架构二进制
 cmd/                   fnOS 安装、启动、升级与卸载脚本
 config/                fnOS 权限与资源声明
 wizard/                fnOS 安装向导配置
-releases/              历史编译资产与安装包
 Dockerfile             Docker Hub 多架构镜像构建文件
 manifest               fnOS 应用清单
 MDesk 使用手册.md      用户使用、部署与参数说明
 ```
-
-发布仓库根目录只保留文档、配置与生命周期脚本；FPK、Windows 与 Linux 编译资产统一存放于 `releases/`。
 
 ---
 
@@ -356,6 +353,15 @@ MDesk 使用手册.md      用户使用、部署与参数说明
 > 服务健康检查固定使用 `GET/HEAD /@mdesk/healthz`，与管理入口路径无关；一键安装脚本也使用该端点探测启动状态。
 
 ## 更新日志
+
+### 2.8.27
+
+- 优化桌面窗口通知与复制反馈：提示信息显示在当前活动窗口，复制后保留按钮图标并短暂显示“已复制”。
+- 完善 Cloudflare Tunnel 配置体验：命名隧道与快捷隧道改为更清晰的单选方式；快捷隧道地址自动补全协议并保留服务路径，公网链接和 EasyTier 组网 IP 支持一键复制。
+- 隧道实例支持直接重命名，名称限制为 1 至 64 个字符并校验非法控制字符；系统托管实例不可修改。
+- 公网地址、EasyTier 组网地址及其配置路径默认收起，可按需展开查看；隧道配置与日志区域也支持展开和收起。
+- 远程存储地址会按所选协议自动补全格式，并支持从存储管理直接打开本机或已挂载的远程目录。
+- 优化成员应用授权在窄窗口下的控件布局。
 
 ### 2.8.26
 
