@@ -104,7 +104,7 @@ M•Desk 以 Linux 为主要运行环境，同时提供 Windows、Docker 与 fnO
 | Linux amd64 | `MDesk-linux-amd64` | 适用于常见 x86_64 设备 |
 | Linux arm64 | `MDesk-linux-arm64` | 适用于 ARM64 设备 |
 | Linux armv7 | `MDesk-linux-armv7` | 适用于 32 位 ARMv7 设备 |
-| fnOS | `MDesk_2.8.24.fpk` | 支持 amd64 与 arm64 |
+| fnOS | `MDesk_2.8.25.fpk` | 支持 amd64 与 arm64 |
 
 <a id="linux-install"></a>
 
@@ -300,7 +300,7 @@ Docker 管理需要挂载 Docker Socket。文件管理与终端默认只看到�
 
 ### fnOS FPK（平台专用）
 
-1. 从 [Releases](https://github.com/IMGZCQ/MDesk/releases) 下载最新的 `MDesk_2.8.24.fpk`。
+1. 从 [Releases](https://github.com/IMGZCQ/MDesk/releases) 下载最新的 `MDesk_2.8.25.fpk`。
 2. 在 fnOS「应用中心」选择本地安装，上传 FPK 并打开安装向导。
 3. 设置访问端口、访问协议、管理员密码与密码确认。默认协议为 HTTP，默认端口为 `19188`。
 4. 安装完成后，从 fnOS 桌面或按安装时选择的协议和端口打开管理入口。FPK 安装向导已经建立管理员密码，不再走普通 Linux 部署的首次访问设密页面。
@@ -356,6 +356,23 @@ MDesk 使用手册.md      用户使用、部署与参数说明
 > 服务健康检查固定使用 `GET/HEAD /@mdesk/healthz`，与管理入口路径无关；一键安装脚本也使用该端点探测启动状态。
 
 ## 更新日志
+
+### 2.8.25
+
+- 应用中心新增分类浏览，提供影音图文、系统工具、办公效率、社通讯息、生活便民、教育培训、游戏娱乐、开发运维、人工智能和暂未分类。
+- M·Desk 应用源与第三方应用源均支持分类筛选。
+- 完善 MPK 安装流程：安装包先完成校验并暂存，再进入配置向导；支持超时、取消及失败清理，配置内容与是否启动在最终安装时提交。
+- MPK 安装与升级增加设备架构兼容性检查，阻止不兼容的安装包进入安装流程。
+- 完善远程存储（远程挂载）和文件管理，支持本机目录及 WebDAV、FTP/FTPS、SFTP、S3、SMB2/3、Linux NFS 接入。
+- 管理后台支持建立 WebDAV 与 SFTP 存储网关，并可创建账号及授权可访问目录。
+- 提升存储依赖组件下载与更新的稳定性，增加下载源回退、缓存、完整性校验、网络重试及失败回滚。
+
+### M·Desk 管理器 0.1.22
+
+- 完善 HTTP/HTTPS 地址识别与 HTTPS 证书信任，首次连接或证书变化时显示 SHA-256 指纹确认，未确认的证书变化会阻止连接。
+- 新增管理器级 HTTP/SOCKS5 代理及 SSH 单跳跳板机；连接可继承管理器路由、强制直连或使用独立代理，代理凭据使用 Windows 受保护存储保存。
+- 服务器重装后可重新同步远端实例身份和版本。
+- 新建克隆及配置备份恢复支持代理和连接路由配置。
 
 ### 2.8.24
 

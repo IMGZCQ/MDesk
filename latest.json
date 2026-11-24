@@ -1,7 +1,7 @@
 {
-  "tag_name": "v2.8.23",
+  "tag_name": "v2.8.25",
   "html_url": "https://mdesk.imcq.top/releases/",
-  "body": "# M·Desk 2.8.23\n\n## 本次更新内容\n\n### 2.8.23\n\n- 飞牛安装包构建及启动阶段增加 Linux 程序格式与 CPU 架构校验，避免错误架构程序导致存储网关无法启动，并提供明确的重装提示。\n- 完善 SFTP 存储网关字段说明，减少服务端与客户端配置项对应不清嘅问题。\n- 分享收集页新增链接级累计上传额度，可分别设置累计大小和文件数上限，并在分享列表查看当前用量。\n- 分享收集额度支持重置；重置只清零累计计数，已上传文件会保留，同时取消未完成上传并清理临时文件。\n- 分享支持上传扩展名白名单或黑名单，默认阻止常见可执行文件和脚本；分享密码改用安全哈希保存，修改或取消密码后旧访问会话立即失效。\n- 完善分享页密码退出、上传状态和公开页面显示细节。\n- 桌面图标、备用链接、MPK 应用及飞牛应用快捷方式新增“在浏览器新标签页打开”入口，原有嘅应用内打开方式保持不变。\n- 优化快捷菜单嘅操作布局、键盘导航同窄屏显示，避免菜单项或快捷操作超出视口。\n\n### M·Desk 管理器 0.1.20\n\n- 完善 SSH 与 SFTP 主机配置说明，主机密钥指纹改为自动扫描确认，无需用户提前查找或手动填写。\n- 远程连接菜单支持使用系统默认浏览器打开当前服务器，并校验外部地址。\n- 完善远程嵌入页面嘅 Service Worker 隔离，避免缓存串用或旧页面残留。\n- 同步 M·Desk 2.8.23 嘅版本与发布信息。\n",
+  "body": "# M·Desk 2.8.25\n\n## 本次更新内容\n\n### 2.8.25\n\n- 应用中心新增分类浏览，提供影音图文、系统工具、办公效率、社通讯息、生活便民、教育培训、游戏娱乐、开发运维、人工智能和暂未分类。\n- M·Desk 应用源与第三方应用源均支持分类筛选。\n- 完善 MPK 安装流程：安装包先完成校验并暂存，再进入配置向导；支持超时、取消及失败清理，配置内容与是否启动在最终安装时提交。\n- MPK 安装与升级增加设备架构兼容性检查，阻止不兼容的安装包进入安装流程。\n- 完善远程存储（远程挂载）和文件管理，支持本机目录及 WebDAV、FTP/FTPS、SFTP、S3、SMB2/3、Linux NFS 接入。\n- 管理后台支持建立 WebDAV 与 SFTP 存储网关，并可创建账号及授权可访问目录。\n- 提升存储依赖组件下载与更新的稳定性，增加下载源回退、缓存、完整性校验、网络重试及失败回滚。\n\n### M·Desk 管理器 0.1.22\n\n- 完善 HTTP/HTTPS 地址识别与 HTTPS 证书信任，首次连接或证书变化时显示 SHA-256 指纹确认，未确认的证书变化会阻止连接。\n- 新增管理器级 HTTP/SOCKS5 代理及 SSH 单跳跳板机；连接可继承管理器路由、强制直连或使用独立代理，代理凭据使用 Windows 受保护存储保存。\n- 服务器重装后可重新同步远端实例身份和版本。\n- 新建克隆及配置备份恢复支持代理和连接路由配置。\n",
   "assets": [
     {
       "os": "linux",
@@ -9,11 +9,11 @@
       "name": "MDesk-linux-amd64",
       "urls": [
         "https://mdesk.imcq.top/releases/MDesk-linux-amd64",
-        "https://github.com/IMGZCQ/MDesk/releases/download/v2.8.23/MDesk-linux-amd64"
+        "https://github.com/IMGZCQ/MDesk/releases/download/v2.8.25/MDesk-linux-amd64"
       ],
       "browser_download_url": "https://mdesk.imcq.top/releases/MDesk-linux-amd64",
-      "size": 31805602,
-      "sha256": "5aed37f0c3176be3dc590831feb96549b7c52a8542b4b56eae32e5153d74f845"
+      "size": 32370850,
+      "sha256": "6162e1b66986b3e022addf3e846fa83dc5e0e47cf456936ea1dbf6f56acb2eb2"
     },
     {
       "os": "linux",
@@ -21,11 +21,11 @@
       "name": "MDesk-linux-arm64",
       "urls": [
         "https://mdesk.imcq.top/releases/MDesk-linux-arm64",
-        "https://github.com/IMGZCQ/MDesk/releases/download/v2.8.23/MDesk-linux-arm64"
+        "https://github.com/IMGZCQ/MDesk/releases/download/v2.8.25/MDesk-linux-arm64"
       ],
       "browser_download_url": "https://mdesk.imcq.top/releases/MDesk-linux-arm64",
-      "size": 29622434,
-      "sha256": "5ddc869c8e318aec94f54962d9be6a01cf0239f1647912e9d4d7564b559f2a26"
+      "size": 30146722,
+      "sha256": "fe7c1ba3d23f399ade867243644a8a7d4e1fe8bf2ec4a928e5f9102875f0edb3"
     },
     {
       "os": "linux",
@@ -33,11 +33,11 @@
       "name": "MDesk-linux-armv7",
       "urls": [
         "https://mdesk.imcq.top/releases/MDesk-linux-armv7",
-        "https://github.com/IMGZCQ/MDesk/releases/download/v2.8.23/MDesk-linux-armv7"
+        "https://github.com/IMGZCQ/MDesk/releases/download/v2.8.25/MDesk-linux-armv7"
       ],
       "browser_download_url": "https://mdesk.imcq.top/releases/MDesk-linux-armv7",
-      "size": 30146722,
-      "sha256": "6ac21dac07c0d025ee0c26ffa3499a25a4e76188439899384b823cd7f4d20c23"
+      "size": 30671010,
+      "sha256": "e6f9a0a5c13e1201592358f0688ec0954f651ae90646fd936e2509c979aa3b24"
     }
   ]
 }
