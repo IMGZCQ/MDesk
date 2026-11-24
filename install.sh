@@ -64,7 +64,7 @@ if [ -t 1 ]; then
   readonly C_OK=$'\033[32m'
   readonly C_WARN=$'\033[33m'
   readonly C_ERR=$'\033[31m'
-  readonly C_TITLE=$'\033[96m'
+  readonly C_TITLE=$'\033[97m'
   readonly C_LABEL=$'\033[94m'
   readonly C_VAL=$'\033[97m'
   readonly C_MENU=$'\033[92m'
@@ -277,10 +277,12 @@ EOF
 # ===================== 美化渲染函数（只改界面，无业务逻辑）=====================
 print_banner() {
   printf '\n'
-  printf '%s┌─────────────────────────────────────────────┐%s\n' "${C_TITLE}" "${C_RESET}"
-  printf '%s│          M•Desk · 高效轻量桌面系统          │%s\n' "${C_TITLE}" "${C_RESET}"
-  printf '%s│      安装 / 升级 / 卸载 一体化脚本           │%s\n' "${C_TITLE}" "${C_RESET}"
-  printf '%s└─────────────────────────────────────────────┘%s\n' "${C_TITLE}" "${C_RESET}"
+  printf '%s┌─────────────────────────────────────────────┐%s\n' "${C_INFO}" "${C_RESET}"
+  printf '%s│%s          M•Desk · 高效轻量桌面系统          %s│%s\n' \
+    "${C_INFO}" "${C_TITLE}" "${C_INFO}" "${C_RESET}"
+  printf '%s│%s      安装 / 升级 / 卸载 一体化脚本           %s│%s\n' \
+    "${C_INFO}" "${C_TITLE}" "${C_INFO}" "${C_RESET}"
+  printf '%s└─────────────────────────────────────────────┘%s\n' "${C_INFO}" "${C_RESET}"
   printf '\n'
 }
 
@@ -4819,17 +4821,14 @@ action_appcenter_upgrade() {
     return 1
   fi
   new_version="$(detect_binary_version "${TEMP_DIR}/MDesk.new" || true)"
-  if [ -z "${new_version}" ]; then
-    warn "无法识别新版本号，为避免安装未知版本，当前 M•Desk 实例未被修改。"
-    return 1
-  fi
+  new_version="${new_version:-${TARGET_VERSION:-}}"
   TARGET_VERSION="${new_version}"
-  success "新版本已下载并通过校验：$(version_display "${TARGET_VERSION}" "未知")"
+  success "新版本已下载并通过校验：$(version_display "${TARGET_VERSION}" "目标版本")"
 
   if ! prepare_appcenter_replacement "${TEMP_DIR}/MDesk.new"; then
     return 1
   fi
-  success "新版本 $(version_display "${new_version}" "未知") 已下载、校验并完成替换准备。"
+  success "新版本 $(version_display "${new_version}" "目标版本") 已下载、校验并完成替换准备。"
   queue_detached_appcenter_action "upgrade" "${new_version}" || return 1
   warn "飞牛应用中心套件资料可能仍显示旧 FPK 版本；本次只替换当前运行二进制。日后重新安装 FPK 可能覆盖此版本。"
   printf '管理地址：%s\n' "$(admin_url)"
