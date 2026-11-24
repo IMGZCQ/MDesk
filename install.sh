@@ -6,6 +6,7 @@ readonly APP_DISPLAY_NAME="M•Desk"
 readonly APP_DESCRIPTION="高效轻量桌面系统"
 readonly SERVICE_NAME="mdesk"
 readonly DEFAULT_PORT="19188"
+readonly DEFAULT_SCHEME="http"
 readonly DEFAULT_INSTALL_DIR="/opt/MDesk"
 readonly CONFIG_DIR="/etc/mdesk"
 readonly CONFIG_FILE="${CONFIG_DIR}/mdesk.conf"
@@ -112,9 +113,11 @@ OLD_INSTALL_DIR=""
 OLD_BINARY=""
 OLD_SERVICE_MODE=""
 OLD_PORT=""
+OLD_SCHEME=""
 OLD_CONFIG_EXISTS="no"
 INSTALL_DIR="${DEFAULT_INSTALL_DIR}"
 PORT="${DEFAULT_PORT}"
+SCHEME="${DEFAULT_SCHEME}"
 BINARY=""
 DATA_DIR=""
 LOG_FILE=""
@@ -301,7 +304,13 @@ is_fnos_appcenter_path() {
     *) return 1 ;;
   esac
 }
+has_appcenter_management_evidence() {
+  [ -x "${APPCENTER_CLI}" ] &&
+    { [ -e "${APPCENTER_APP_PID_FILE}" ] ||
+      [ -d "/var/apps/${APPCENTER_APP_NAME}" ]; }
+}
 is_appcenter_managed() {
+  has_appcenter_management_evidence || return 1
   is_fnos_appcenter_path "${BINARY:-}" ||
     is_fnos_appcenter_path "${INSTALL_DIR:-}"
 }
@@ -339,6 +348,7 @@ print_install_card() {
   printf '%s│ %s安装路径：%s %-34s │%s\n' "${C_INFO}" "${C_LABEL}" "${C_VAL}" "${INSTALL_DIR}" "${C_RESET}"
   printf '%s│ %s二进制：%s %-34s │%s\n' "${C_INFO}" "${C_LABEL}" "${C_VAL}" "${BINARY}" "${C_RESET}"
   printf '%s│ %s监听端口：%s %-34s │%s\n' "${C_INFO}" "${C_LABEL}" "${C_VAL}" "${PORT}" "${C_RESET}"
+  printf '%s│ %s访问协议：%s %-34s │%s\n' "${C_INFO}" "${C_LABEL}" "${C_VAL}" "$(scheme_label "${SCHEME}")" "${C_RESET}"
   printf '%s│ %s服务模式：%s %-34s │%s\n' "${C_INFO}" "${C_LABEL}" "${C_VAL}" "${mode_label}" "${C_RESET}"
   printf '%s└─────────────────────────────────────────────┘%s\n' "${C_INFO}" "${C_RESET}"
   printf '\n'
@@ -435,6 +445,83 @@ detect_binary_version() {
     "${file}" 2>/dev/null | head -n 1 || true)"
   [ -n "${marker}" ] || return 1
   normalize_version "${marker#MDesk-Remote/}"
+}
+is_mdesk_executable_name() {
+  local name="${1##*/}"
+  name="${name,,}"
+  case "${name}" in
+    mdesk|mdesk-*) return 0 ;;
+    *) return 1 ;;
+  esac
+}
+process_runtime_scheme() {
+  local pid="$1"
+  local scheme=""
+  local -a argv=()
+
+  mapfile -d '' -t argv <"/proc/${pid}/cmdline" 2>/dev/null || true
+  if [ "${#argv[@]}" -gt 0 ]; then
+    scheme="$(scheme_from_command_text "$(printf '%q ' "${argv[@]}")" || true)"
+  fi
+  case "${scheme}" in
+    http|https) printf '%s' "${scheme}" ;;
+    *) printf '%s' "${DEFAULT_SCHEME}" ;;
+  esac
+}
+process_has_mdesk_runtime_shape() {
+  local pid="$1"
+  local port=""
+  local data_dir=""
+  local log_file=""
+
+  port="$(process_option_argument "${pid}" "-port" || true)"
+  data_dir="$(process_option_argument "${pid}" "-data" || true)"
+  log_file="$(process_option_argument "${pid}" "-log" || true)"
+  [ -n "${port}" ] || return 1
+  [ -n "${data_dir}" ] || [ -n "${log_file}" ]
+}
+probe_health_version() {
+  local scheme="${1:-http}"
+  local port="${2:-}"
+  local response=""
+  local version=""
+  local -a curl_args=(-fsS --noproxy '*' --max-time 2 -D - -o /dev/null)
+
+  case "${scheme}" in
+    http|https) ;;
+    *) return 1 ;;
+  esac
+  case "${port}" in
+    ''|*[!0-9]*) return 1 ;;
+  esac
+  [ "${port}" -ge 1 ] && [ "${port}" -le 65535 ] || return 1
+  command -v curl >/dev/null 2>&1 || return 1
+  if [ "${scheme}" = "https" ]; then
+    curl_args+=(-k)
+  fi
+
+  response="$(curl "${curl_args[@]}" \
+    "${scheme}://127.0.0.1:${port}/@mdesk/healthz" 2>/dev/null || true)"
+  [ -n "${response}" ] || return 1
+  version="$(printf '%s\n' "${response}" | awk '
+    {
+      line = $0
+      sub(/\r$/, "", line)
+      separator = index(line, ":")
+      if (separator == 0) next
+      name = tolower(substr(line, 1, separator - 1))
+      if (name != "x-mdesk-version") next
+      value = substr(line, separator + 1)
+      sub(/^[[:space:]]+/, "", value)
+      sub(/[[:space:]]+$/, "", value)
+      print value
+      exit
+    }')"
+  version="$(normalize_version "${version}")"
+  case "${version}" in
+    ''|*[!0-9A-Za-z.+_-]*) return 1 ;;
+  esac
+  printf '%s' "${version}"
 }
 restore_direct_run_args() {
   local count="${DIRECT_RUN_ARG_COUNT:-0}"
@@ -540,6 +627,70 @@ validate_port() {
     die "端口必须是 1-65535 之间的整数。"
   fi
 }
+validate_scheme() {
+  local value="$1"
+  case "${value}" in
+    http|https) ;;
+    *) die "访问协议只能是 http 或 https。" ;;
+  esac
+}
+scheme_label() {
+  local scheme="${1:-${DEFAULT_SCHEME}}"
+  scheme="${scheme,,}"
+  case "${scheme}" in
+    https) printf 'HTTPS（自签名证书）' ;;
+    http) printf 'HTTP' ;;
+    *) printf '未知' ;;
+  esac
+}
+admin_url() {
+  printf '%s://<服务器IP>:%s/@admin' "${SCHEME}" "${PORT}"
+}
+prompt_access_scheme() {
+  local current_scheme="$1"
+  local default_choice="$2"
+  local input=""
+  local normalized=""
+  local default_label=""
+
+  case "${default_choice}" in
+    1) default_label="HTTP" ;;
+    2) default_label="HTTPS（自签名证书）" ;;
+    *) default_label="$(scheme_label "${current_scheme}")" ;;
+  esac
+
+  printf '访问协议：\n' >&2
+  printf '  1) HTTP\n' >&2
+  printf '  2) HTTPS（自动生成自签名证书）\n' >&2
+  printf '  3) 默认/保持当前协议（%s）\n' "${default_label}" >&2
+  while true; do
+    if ! prompt_read_into input "请选择 [默认 ${default_choice}]: "; then
+      input=""
+    fi
+    input="$(trim "${input}")"
+    normalized="${input,,}"
+    case "${normalized}" in
+      '') normalized="${default_choice}" ;;
+    esac
+    case "${normalized}" in
+      1|http)
+        SCHEME="http"
+        return 0
+        ;;
+      2|https)
+        SCHEME="https"
+        return 0
+        ;;
+      3|default)
+        SCHEME="${current_scheme}"
+        return 0
+        ;;
+      *)
+        warn "请输入 1、2、3，或 http、https、default。"
+        ;;
+    esac
+  done
+}
 validate_install_dir() {
   local value="$1"
   [ -n "${value}" ] || die "安装路径不能为空。"
@@ -572,6 +723,13 @@ detect_arch() {
   esac
 }
 load_config() {
+  local config_has_scheme="no"
+  local detected_scheme=""
+
+  if config_declares_scheme; then
+    config_has_scheme="yes"
+  fi
+  SCHEME=""
   if [ -r "${CONFIG_FILE}" ]; then
     # shellcheck disable=SC1090
     . "${CONFIG_FILE}"
@@ -579,6 +737,21 @@ load_config() {
   INSTALL_DIR="${INSTALL_DIR:-${DEFAULT_INSTALL_DIR}}"
   PORT="${PORT:-${DEFAULT_PORT}}"
   BINARY="${BINARY:-${INSTALL_DIR}/MDesk}"
+  if [ "${config_has_scheme}" = "no" ]; then
+    detected_scheme="$(scheme_from_service_files || true)"
+    if [ -z "${detected_scheme}" ]; then
+      detected_scheme="$(scheme_from_live_mdesk_process "${BINARY}" || true)"
+    fi
+    if [ -n "${detected_scheme}" ]; then
+      SCHEME="${detected_scheme}"
+    fi
+  fi
+  SCHEME="$(trim "${SCHEME:-${DEFAULT_SCHEME}}")"
+  SCHEME="${SCHEME,,}"
+  if [ -z "${SCHEME}" ]; then
+    SCHEME="${DEFAULT_SCHEME}"
+  fi
+  validate_scheme "${SCHEME}"
   DATA_DIR="${DATA_DIR:-${INSTALL_DIR}/data}"
   LOG_FILE="${LOG_FILE:-${INSTALL_DIR}/mdesk.log}"
   CONSOLE_LOG="${CONSOLE_LOG:-${INSTALL_DIR}/mdesk-console.log}"
@@ -662,6 +835,22 @@ parse_mdesk_runtime_args() {
           PORT="${value}"
         fi
         ;;
+      -scheme|--scheme)
+        if [ $((index + 1)) -lt "${count}" ]; then
+          value="${runtime_args[$((index + 1))],,}"
+          case "${value}" in
+            http|https) SCHEME="${value}" ;;
+          esac
+          index=$((index + 1))
+        fi
+        ;;
+      -scheme=*|--scheme=*)
+        value="${argument#*=}"
+        value="${value,,}"
+        case "${value}" in
+          http|https) SCHEME="${value}" ;;
+        esac
+        ;;
       -data|--data)
         if [ $((index + 1)) -lt "${count}" ]; then
           value="${runtime_args[$((index + 1))]}"
@@ -721,6 +910,130 @@ set_direct_run_port_arg() {
   DIRECT_RUN_ARGS=("${updated[@]}")
   DIRECT_RUN_ARG_COUNT="${#DIRECT_RUN_ARGS[@]}"
 }
+set_direct_run_scheme_arg() {
+  local scheme="$1"
+  local index=0
+  local argument=""
+  local found="no"
+  local -a updated=()
+
+  while [ "${index}" -lt "${#DIRECT_RUN_ARGS[@]}" ]; do
+    argument="${DIRECT_RUN_ARGS[${index}]}"
+    case "${argument}" in
+      -scheme|--scheme)
+        updated+=("${argument}" "${scheme}")
+        found="yes"
+        index=$((index + 2))
+        continue
+        ;;
+      -scheme=*|--scheme=*)
+        updated+=("${argument%%=*}=${scheme}")
+        found="yes"
+        ;;
+      *)
+        updated+=("${argument}")
+        ;;
+    esac
+    index=$((index + 1))
+  done
+  [ "${found}" = "yes" ] || updated+=(-scheme "${scheme}")
+  DIRECT_RUN_ARGS=("${updated[@]}")
+  DIRECT_RUN_ARG_COUNT="${#DIRECT_RUN_ARGS[@]}"
+}
+scheme_from_command_text() {
+  local command_text="$1"
+  local tokens=""
+
+  tokens="$(printf '%s\n' "${command_text}" |
+    grep -Eo -- '(--?scheme(=|[[:space:]]+)[^[:space:]]+|^[[:space:]]*SCHEME=[^[:space:]]+|^[[:space:]]*(https?)[[:space:]]*$)' || true)"
+  case "${tokens,,}" in
+    *https*) printf 'https' ;;
+    *http*) printf 'http' ;;
+    *) return 1 ;;
+  esac
+}
+config_declares_scheme() {
+  [ -r "${CONFIG_FILE}" ] || return 1
+  grep -Eq '^[[:space:]]*SCHEME=' "${CONFIG_FILE}"
+}
+scheme_from_service_files() {
+  local command_text=""
+  local exec_start=""
+  local detected_scheme=""
+  local init_command=""
+  local init_command_args=""
+  local init_bin=""
+  local init_scheme=""
+
+  if [ -f "${SYSTEMD_UNIT}" ]; then
+    exec_start="$(sed -n 's/^ExecStart=//p' "${SYSTEMD_UNIT}" | head -n 1)"
+    detected_scheme="$(scheme_from_command_text "${exec_start}" || true)"
+    if [ -n "${detected_scheme}" ]; then
+      printf '%s' "${detected_scheme}"
+      return 0
+    fi
+  fi
+  if [ -f "${INIT_SCRIPT}" ]; then
+    init_command="$(sed -n 's/^command=//p' "${INIT_SCRIPT}" | head -n 1)"
+    init_command="${init_command#\"}"
+    init_command="${init_command%\"}"
+    init_command_args="$(sed -n 's/^command_args=//p' "${INIT_SCRIPT}" | head -n 1)"
+    init_command_args="${init_command_args#\"}"
+    init_command_args="${init_command_args%\"}"
+    init_bin="$(sed -n 's/^BIN=//p' "${INIT_SCRIPT}" | head -n 1)"
+    init_bin="${init_bin#\"}"
+    init_bin="${init_bin%\"}"
+    init_scheme="$(sed -n 's/^SCHEME=//p' "${INIT_SCRIPT}" | head -n 1)"
+    init_scheme="${init_scheme#\"}"
+    init_scheme="${init_scheme%\"}"
+    command_text+="${init_command} ${init_command_args}"$'\n'
+    command_text+="${init_bin}"$'\n'
+    command_text+="${init_scheme}"$'\n'
+  fi
+  [ -n "${command_text//[[:space:]]/}" ] || return 1
+  scheme_from_command_text "${command_text}"
+}
+scheme_from_live_mdesk_process() {
+  local expected_binary="${1:-${BINARY:-}}"
+  local pid_path=""
+  local pid=""
+  local executable=""
+  local cmdline=""
+  local detected_scheme=""
+  local process_matches_binary="no"
+
+  [ -n "${expected_binary}" ] || return 1
+  for pid_path in /proc/[0-9]*; do
+    [ -d "${pid_path}" ] || continue
+    pid="${pid_path##*/}"
+    [ "${pid}" = "$$" ] && continue
+    kill -0 "${pid}" 2>/dev/null || continue
+
+    executable="$(readlink "/proc/${pid}/exe" 2>/dev/null || true)"
+    case "${executable}" in
+      *" (deleted)") executable="${executable% (deleted)}" ;;
+    esac
+    cmdline="$(tr '\000' ' ' <"/proc/${pid}/cmdline" 2>/dev/null || true)"
+    process_matches_binary="no"
+    [ "${executable}" = "${expected_binary}" ] && process_matches_binary="yes"
+    case " ${cmdline} " in
+      *" ${expected_binary} "*) process_matches_binary="yes" ;;
+    esac
+    [ "${process_matches_binary}" = "yes" ] || continue
+    case " ${cmdline} " in
+      *" --update-worker "*|*" --password-reset-worker "*|*" --restart-worker "*|*" --appcenter-action-worker "*)
+        continue
+        ;;
+    esac
+
+    detected_scheme="$(scheme_from_command_text "${cmdline}" || true)"
+    if [ -n "${detected_scheme}" ]; then
+      printf '%s' "${detected_scheme}"
+      return 0
+    fi
+  done
+  return 1
+}
 configure_direct_run_instance() {
   local pid="$1"
   local executable="$2"
@@ -743,6 +1056,7 @@ configure_direct_run_instance() {
   LOG_FILE="${INSTALL_DIR}/mdesk.log"
   CONSOLE_LOG="${INSTALL_DIR}/mdesk-console.log"
   PORT="${DEFAULT_PORT}"
+  SCHEME="${DEFAULT_SCHEME}"
   SERVICE_MODE="process"
 
   cwd="$(readlink "/proc/${pid}/cwd" 2>/dev/null || true)"
@@ -752,6 +1066,9 @@ configure_direct_run_instance() {
     DIRECT_RUN_CWD="${INSTALL_DIR}"
   fi
   parse_direct_run_args
+  if [ -z "${version}" ]; then
+    version="$(probe_health_version "${SCHEME}" "${PORT}" || true)"
+  fi
   INSTALLED_VERSION="${version}"
 }
 proc_parent_pid() {
@@ -846,8 +1163,13 @@ scan_direct_mdesk_instances() {
   local pid=""
   local executable=""
   local version=""
+  local cached_version=""
+  local health_version=""
+  local process_port=""
+  local process_scheme=""
   local argument=""
   local worker_argument="no"
+  local candidate="no"
   local -a argv=()
   local -A version_cache=()
 
@@ -866,10 +1188,6 @@ scan_direct_mdesk_instances() {
       *" (deleted)") executable="${executable% (deleted)}" ;;
     esac
     [ -n "${executable}" ] && [ -f "${executable}" ] && [ -r "${executable}" ] || continue
-    # FPK 托管实例必须走飞牛应用中心，不能混入脚本直接运行实例列表。
-    if is_fnos_appcenter_path "${executable}"; then
-      continue
-    fi
 
     mapfile -d '' -t argv <"/proc/${pid}/cmdline" 2>/dev/null || true
     [ "${#argv[@]}" -gt 0 ] || continue
@@ -877,7 +1195,7 @@ scan_direct_mdesk_instances() {
     worker_argument="no"
     for argument in "${argv[@]}"; do
       case "${argument}" in
-        --update-worker|--password-reset-worker)
+        --update-worker|--password-reset-worker|--restart-worker|--appcenter-action-worker)
           worker_argument="yes"
           break
           ;;
@@ -885,14 +1203,36 @@ scan_direct_mdesk_instances() {
     done
     [ "${worker_argument}" = "yes" ] && continue
 
-    if [ -n "${version_cache["${executable}"]:-}" ]; then
-      version="${version_cache["${executable}"]}"
+    cached_version="${version_cache["${executable}"]:-}"
+    if [ -n "${cached_version}" ]; then
+      if [ "${cached_version}" = "__none__" ]; then
+        version=""
+      else
+        version="${cached_version}"
+      fi
     else
       version="$(detect_binary_version "${executable}" || true)"
       version_cache["${executable}"]="${version:-__none__}"
     fi
-    [ "${version}" = "__none__" ] && continue
-    [ -n "${version}" ] || continue
+
+    candidate="no"
+    if [ -n "${version}" ] || is_mdesk_executable_name "${executable}"; then
+      candidate="yes"
+    elif process_has_mdesk_runtime_shape "${pid}"; then
+      process_port="$(process_option_argument "${pid}" "-port" || true)"
+      process_scheme="$(process_runtime_scheme "${pid}")"
+      health_version="$(probe_health_version "${process_scheme}" "${process_port}" || true)"
+      if [ -n "${health_version}" ]; then
+        candidate="yes"
+        version="${health_version}"
+      fi
+    fi
+    [ "${candidate}" = "yes" ] || continue
+    if [ -z "${version}" ]; then
+      process_port="$(process_option_argument "${pid}" "-port" || true)"
+      process_scheme="$(process_runtime_scheme "${pid}")"
+      version="$(probe_health_version "${process_scheme}" "${process_port}" || true)"
+    fi
 
     DIRECT_CANDIDATE_PIDS+=("${pid}")
     DIRECT_CANDIDATE_PATHS+=("${executable}")
@@ -1013,6 +1353,7 @@ scan_appcenter_mdesk_instances() {
   local pid=""
   local executable=""
   local version=""
+  local cached_version=""
   local argument=""
   local worker_argument="no"
   local -a argv=()
@@ -1046,7 +1387,7 @@ scan_appcenter_mdesk_instances() {
     worker_argument="no"
     for argument in "${argv[@]}"; do
       case "${argument}" in
-        --update-worker|--password-reset-worker)
+        --update-worker|--password-reset-worker|--restart-worker|--appcenter-action-worker)
           worker_argument="yes"
           break
           ;;
@@ -1054,14 +1395,17 @@ scan_appcenter_mdesk_instances() {
     done
     [ "${worker_argument}" = "yes" ] && continue
 
-    if [ -n "${version_cache["${executable}"]:-}" ]; then
-      version="${version_cache["${executable}"]}"
+    cached_version="${version_cache["${executable}"]:-}"
+    if [ -n "${cached_version}" ]; then
+      if [ "${cached_version}" = "__none__" ]; then
+        version=""
+      else
+        version="${cached_version}"
+      fi
     else
       version="$(detect_binary_version "${executable}" || true)"
       version_cache["${executable}"]="${version:-__none__}"
     fi
-    [ "${version}" = "__none__" ] && continue
-    [ -n "${version}" ] || continue
 
     APPCENTER_CANDIDATE_PIDS+=("${pid}")
     APPCENTER_CANDIDATE_PATHS+=("${executable}")
@@ -1132,6 +1476,7 @@ configure_appcenter_run_instance() {
   LOG_FILE="${INSTALL_DIR}/mdesk.log"
   CONSOLE_LOG="${INSTALL_DIR}/mdesk-console.log"
   PORT="${DEFAULT_PORT}"
+  SCHEME="${DEFAULT_SCHEME}"
   SERVICE_MODE="process"
   DIRECT_RUN_DETECTED="no"
   DIRECT_RUN_PID=""
@@ -1146,6 +1491,9 @@ configure_appcenter_run_instance() {
   if [ "${#runtime_args[@]}" -gt 0 ]; then
     parse_mdesk_runtime_args "${cwd}" "${runtime_args[@]}"
   fi
+  if [ -z "${version}" ]; then
+    version="$(probe_health_version "${SCHEME}" "${PORT}" || true)"
+  fi
   INSTALLED_VERSION="${version}"
 }
 infer_appcenter_install() {
@@ -1153,6 +1501,7 @@ infer_appcenter_install() {
   local selected_pid=""
   local selected_index=0
 
+  has_appcenter_management_evidence || return 1
   scan_appcenter_mdesk_instances || return 1
   if [ -r "${APPCENTER_APP_PID_FILE}" ]; then
     pid_file_pid="$(head -n 1 "${APPCENTER_APP_PID_FILE}" 2>/dev/null || true)"
@@ -1180,10 +1529,12 @@ infer_existing_install() {
   local name=""
   local dir=""
   local exec_start=""
+  local detected_scheme=""
   local marker="no"
   if infer_appcenter_install; then
     return 0
   fi
+  SCHEME="${DEFAULT_SCHEME}"
   if [ -f "${SYSTEMD_UNIT}" ]; then
     marker="yes"
     exec_start="$(sed -n 's/^ExecStart=//p' "${SYSTEMD_UNIT}" | head -n 1)"
@@ -1252,6 +1603,13 @@ infer_existing_install() {
     DATA_DIR="${INSTALL_DIR}/data"
     LOG_FILE="${INSTALL_DIR}/mdesk.log"
     CONSOLE_LOG="${INSTALL_DIR}/mdesk-console.log"
+  fi
+  detected_scheme="$(scheme_from_service_files || true)"
+  if [ -z "${detected_scheme}" ]; then
+    detected_scheme="$(scheme_from_live_mdesk_process "${BINARY}" || true)"
+  fi
+  if [ -n "${detected_scheme}" ]; then
+    SCHEME="${detected_scheme}"
   fi
   if [ -f "${SYSTEMD_UNIT}" ]; then
     SERVICE_MODE="systemd"
@@ -1362,6 +1720,7 @@ save_config() {
   {
     printf 'INSTALL_DIR=%q\n' "${INSTALL_DIR}"
     printf 'PORT=%q\n' "${PORT}"
+    printf 'SCHEME=%q\n' "${SCHEME}"
     printf 'BINARY=%q\n' "${BINARY}"
     printf 'DATA_DIR=%q\n' "${DATA_DIR}"
     printf 'LOG_FILE=%q\n' "${LOG_FILE}"
@@ -1774,6 +2133,7 @@ write_appcenter_action_job() {
     printf 'TARGET_VERSION=%q\n' "${APPCENTER_ACTION_TARGET_VERSION}"
     printf 'INSTALLED_VERSION=%q\n' "${INSTALLED_VERSION}"
     printf 'PORT=%q\n' "${PORT}"
+    printf 'SCHEME=%q\n' "${SCHEME}"
     printf 'INSTALL_DIR=%q\n' "${INSTALL_DIR}"
     printf 'BINARY=%q\n' "${BINARY}"
     printf 'DATA_DIR=%q\n' "${DATA_DIR}"
@@ -2193,6 +2553,7 @@ write_update_job() {
     printf 'PREVIOUS_INSTALLED=%q\n' "yes"
     printf 'ARCH=%q\n' "${ARCH}"
     printf 'PORT=%q\n' "${PORT}"
+    printf 'SCHEME=%q\n' "${SCHEME}"
     printf 'INSTALL_DIR=%q\n' "${INSTALL_DIR}"
     printf 'BINARY=%q\n' "${BINARY}"
     printf 'DATA_DIR=%q\n' "${DATA_DIR}"
@@ -2204,6 +2565,7 @@ write_update_job() {
     printf 'OLD_BINARY=%q\n' "${OLD_BINARY}"
     printf 'OLD_SERVICE_MODE=%q\n' "${OLD_SERVICE_MODE}"
     printf 'OLD_PORT=%q\n' "${OLD_PORT}"
+    printf 'OLD_SCHEME=%q\n' "${OLD_SCHEME}"
     printf 'OLD_CONFIG_EXISTS=%q\n' "${OLD_CONFIG_EXISTS}"
     printf 'INSTALLED_VERSION=%q\n' "${INSTALLED_VERSION}"
     printf 'TARGET_VERSION=%q\n' "${TARGET_VERSION}"
@@ -2594,7 +2956,7 @@ Wants=network-online.target
 [Service]
 Type=simple
 WorkingDirectory=${INSTALL_DIR}
-ExecStart=${BINARY} -port ${PORT} -data ${DATA_DIR} -log ${LOG_FILE}
+ExecStart=${BINARY} -port ${PORT} -scheme ${SCHEME} -data ${DATA_DIR} -log ${LOG_FILE}
 Restart=on-failure
 RestartSec=5s
 TimeoutStopSec=15s
@@ -2622,7 +2984,7 @@ write_openrc_script() {
 name="${APP_DISPLAY_NAME}"
 description="${APP_DISPLAY_NAME} ${APP_DESCRIPTION}"
 command="${BINARY}"
-command_args="-port ${PORT} -data ${DATA_DIR} -log ${LOG_FILE}"
+command_args="-port ${PORT} -scheme ${SCHEME} -data ${DATA_DIR} -log ${LOG_FILE}"
 directory="${INSTALL_DIR}"
 pidfile="${PID_FILE}"
 command_background="yes"
@@ -2652,6 +3014,7 @@ write_sysv_script() {
 NAME="${SERVICE_NAME}"
 BIN="${BINARY}"
 PORT="${PORT}"
+SCHEME="${SCHEME}"
 DATA_DIR="${DATA_DIR}"
 LOG_FILE="${LOG_FILE}"
 CONSOLE_LOG="${CONSOLE_LOG}"
@@ -2669,7 +3032,7 @@ start_service() {
   fi
   mkdir -p "\$DATA_DIR" "\$(dirname "\$PIDFILE")" || return 1
   cd "\$(dirname "\$BIN")" || return 1
-  nohup "\$BIN" -port "\$PORT" -data "\$DATA_DIR" -log "\$LOG_FILE" >>"\$CONSOLE_LOG" 2>&1 &
+  nohup "\$BIN" -port "\$PORT" -scheme "\$SCHEME" -data "\$DATA_DIR" -log "\$LOG_FILE" >>"\$CONSOLE_LOG" 2>&1 &
   pid=\$!
   printf '%s\n' "\$pid" >"\$PIDFILE"
   sleep 1
@@ -2888,7 +3251,7 @@ wait_port_released() {
 start_background_process() {
   local pid=""
   local launch_dir="${INSTALL_DIR}"
-  local -a launch_args=(-port "${PORT}" -data "${DATA_DIR}" -log "${LOG_FILE}")
+  local -a launch_args=(-port "${PORT}" -scheme "${SCHEME}" -data "${DATA_DIR}" -log "${LOG_FILE}")
 
   if service_is_active; then
     return 0
@@ -3321,12 +3684,19 @@ show_service_failure() {
 }
 
 http_probe() {
+  local health_url="${SCHEME}://127.0.0.1:${PORT}/@mdesk/healthz"
+  local curl_args=(-fsSL --max-time 2)
+  local wget_args=(-q -T 2 -O /dev/null)
+  if [ "${SCHEME}" = "https" ]; then
+    curl_args+=(-k)
+    wget_args+=(--no-check-certificate)
+  fi
   if command -v curl >/dev/null 2>&1; then
-    curl -fsSL --max-time 2 "http://127.0.0.1:${PORT}/@mdesk/healthz" >/dev/null 2>&1
+    curl "${curl_args[@]}" "${health_url}" >/dev/null 2>&1
     return
   fi
   if command -v wget >/dev/null 2>&1; then
-    wget -q -T 2 -O /dev/null "http://127.0.0.1:${PORT}/@mdesk/healthz" >/dev/null 2>&1
+    wget "${wget_args[@]}" "${health_url}" >/dev/null 2>&1
     return
   fi
   return 1
@@ -3445,6 +3815,7 @@ write_password_reset_job() {
   {
     printf 'NEW_PASSWORD=%q\n' "${new_password}"
     printf 'PORT=%q\n' "${PORT}"
+    printf 'SCHEME=%q\n' "${SCHEME}"
     printf 'INSTALL_DIR=%q\n' "${INSTALL_DIR}"
     printf 'BINARY=%q\n' "${BINARY}"
     printf 'DATA_DIR=%q\n' "${DATA_DIR}"
@@ -3719,6 +4090,7 @@ write_restart_job() {
 
   {
     printf 'PORT=%q\n' "${PORT}"
+    printf 'SCHEME=%q\n' "${SCHEME}"
     printf 'INSTALL_DIR=%q\n' "${INSTALL_DIR}"
     printf 'BINARY=%q\n' "${BINARY}"
     printf 'DATA_DIR=%q\n' "${DATA_DIR}"
@@ -4136,6 +4508,7 @@ rollback_install() {
   local old_binary_path="${OLD_BINARY:-${BINARY}}"
   local old_service_mode="${OLD_SERVICE_MODE:-${SERVICE_MODE}}"
   local old_port="${OLD_PORT:-${PORT}}"
+  local old_scheme="${OLD_SCHEME:-${DEFAULT_SCHEME}}"
   local old_data_dir="${DATA_DIR}"
   local old_log_file="${LOG_FILE}"
   local old_console_log="${CONSOLE_LOG}"
@@ -4181,6 +4554,7 @@ rollback_install() {
   fi
   SERVICE_MODE="${old_service_mode}"
   PORT="${old_port}"
+  SCHEME="${old_scheme}"
 
   if [ -f "${old_config}" ]; then
     mkdir -p "${CONFIG_DIR}"
@@ -4190,6 +4564,7 @@ rollback_install() {
       warn "旧配置复制失败，正在使用升级前保存的运行参数。"
     fi
   fi
+  SCHEME="${old_scheme}"
   if [ "${DIRECT_RUN_DETECTED}" = "yes" ]; then
     DIRECT_RUN_ARGS=("${OLD_DIRECT_RUN_ARGS[@]}")
     DIRECT_RUN_ARG_COUNT="${#DIRECT_RUN_ARGS[@]}"
@@ -4222,7 +4597,9 @@ apply_prepared_install() {
   local previous_installed="${PREVIOUS_INSTALLED:-no}"
   local target_service_mode="${SERVICE_MODE}"
   local target_port="${PORT}"
+  local target_scheme="${SCHEME}"
   local old_port="${OLD_PORT:-${PORT}}"
+  local old_scheme="${OLD_SCHEME:-${DEFAULT_SCHEME}}"
   local detected_version=""
 
   if is_appcenter_managed; then
@@ -4243,6 +4620,7 @@ apply_prepared_install() {
   if [ "${previous_installed}" = "yes" ]; then
     info "正在停止旧服务。"
     SERVICE_MODE="${OLD_SERVICE_MODE:-${SERVICE_MODE}}"
+    SCHEME="${old_scheme}"
     service_stop || true
     disable_service_registration || true
     remove_all_service_files || true
@@ -4262,6 +4640,7 @@ apply_prepared_install() {
     fi
     SERVICE_MODE="${target_service_mode}"
   fi
+  SCHEME="${target_scheme}"
 
   if ! install -m 0755 "${TEMP_DIR}/MDesk.new" "${BINARY}"; then
     warn "无法写入新的 M•Desk 二进制文件。"
@@ -4317,6 +4696,7 @@ capture_existing_install() {
   OLD_BINARY="${BINARY}"
   OLD_SERVICE_MODE="${SERVICE_MODE}"
   OLD_PORT="${PORT}"
+  OLD_SCHEME="${SCHEME}"
   OLD_DIRECT_RUN_ARGS=("${DIRECT_RUN_ARGS[@]}")
   OLD_DIRECT_RUN_ARG_COUNT="${#OLD_DIRECT_RUN_ARGS[@]}"
   OLD_CONFIG_EXISTS="no"
@@ -4452,7 +4832,7 @@ action_appcenter_upgrade() {
   success "新版本 $(version_display "${new_version}" "未知") 已下载、校验并完成替换准备。"
   queue_detached_appcenter_action "upgrade" "${new_version}" || return 1
   warn "飞牛应用中心套件资料可能仍显示旧 FPK 版本；本次只替换当前运行二进制。日后重新安装 FPK 可能覆盖此版本。"
-  printf '管理地址：http://<服务器IP>:%s/@admin\n' "${PORT}"
+  printf '管理地址：%s\n' "$(admin_url)"
   return 0
 }
 
@@ -4468,7 +4848,7 @@ queue_detached_update() {
   printf '即使当前 M•Desk 终端断开，升级也会继续完成并自动重启服务。\n'
   printf '升级日志：%s\n' "${UPDATE_LOG}"
   printf '完成状态：sudo mdeskctl status\n'
-  printf '刷新地址：http://<服务器IP>:%s/@admin\n' "${PORT}"
+  printf '刷新地址：%s\n' "$(admin_url)"
 }
 
 choose_available_port() {
@@ -4540,6 +4920,8 @@ action_install() {
   local existing_data_dir=""
   local existing_log_file=""
   local existing_console_log=""
+  local current_scheme="${DEFAULT_SCHEME}"
+  local default_scheme_choice="1"
 
   if is_installed; then
     previous_installed="yes"
@@ -4555,6 +4937,8 @@ action_install() {
     existing_console_log="${CONSOLE_LOG}"
     default_port="${PORT}"
     default_dir="${INSTALL_DIR}"
+    current_scheme="${SCHEME}"
+    default_scheme_choice="3"
     capture_existing_install
   else
     OLD_INSTALL_EXISTS="no"
@@ -4562,6 +4946,7 @@ action_install() {
     OLD_BINARY=""
     OLD_SERVICE_MODE=""
     OLD_PORT=""
+    OLD_SCHEME=""
     OLD_CONFIG_EXISTS="no"
   fi
 
@@ -4595,6 +4980,7 @@ action_install() {
     LOG_FILE="${INSTALL_DIR}/mdesk.log"
     CONSOLE_LOG="${INSTALL_DIR}/mdesk-console.log"
   fi
+  prompt_access_scheme "${current_scheme}" "${default_scheme_choice}"
   if is_appcenter_managed; then
     reject_appcenter_script_upgrade
     return 1
@@ -4610,11 +4996,18 @@ action_install() {
   info "安装路径：${INSTALL_DIR}"
   info "用户数据：${DATA_DIR}"
   info "监听端口：${PORT}"
+  info "访问协议：$(scheme_label "${SCHEME}")"
+  if [ "${SCHEME}" = "https" ]; then
+    info "HTTPS 将使用 M•Desk 在用户数据目录 tls 中自动生成的自签名证书。"
+  fi
 
   choose_available_port "${previous_installed}" ||
     die "端口 ${PORT} 被占用，已取消安装。"
   if [ "${existing_direct_run}" = "yes" ] && [ "${PORT}" != "${default_port}" ]; then
     set_direct_run_port_arg "${PORT}"
+  fi
+  if [ "${existing_direct_run}" = "yes" ] && [ "${SCHEME}" != "${current_scheme}" ]; then
+    set_direct_run_scheme_arg "${SCHEME}"
   fi
 
   if [ "${previous_installed}" = "yes" ]; then
@@ -4630,7 +5023,7 @@ action_install() {
     die "安装或启动失败，已尝试清理本次安装。"
 
   success "${APP_DISPLAY_NAME} 已安装并启动。"
-  printf '管理地址：http://<服务器IP>:%s/@admin\n' "${PORT}"
+  printf '管理地址：%s\n' "$(admin_url)"
   printf '服务状态：sudo mdeskctl status\n'
   printf '卸载命令：sudo mdeskctl uninstall\n'
 }
@@ -4676,6 +5069,7 @@ action_update() {
   info "安装路径：${INSTALL_DIR}"
   info "用户数据：${DATA_DIR}"
   info "监听端口：${PORT}"
+  info "访问协议：$(scheme_label "${SCHEME}")（保持当前协议）"
   resolve_install_versions
   print_version_summary "yes"
 

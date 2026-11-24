@@ -1,5 +1,5 @@
 {
-  "version": 10,
+  "version": 11,
   "tips": [
     {
       "id": "tip_001",
@@ -79,6 +79,31 @@
     {
       "id": "tip_018",
       "content": "组网穿透的自定义隧道实例可在配置标题旁直接重命名",
+      "meta": {}
+    },
+    {
+      "id": "tip_019",
+      "content": "应用中心支持按分类浏览 M•Desk 应用与第三方应用源",
+      "meta": {}
+    },
+    {
+      "id": "tip_020",
+      "content": "文件管理可添加 WebDAV、SFTP、S3、SMB 和 NFS 等远程存储",
+      "meta": {}
+    },
+    {
+      "id": "tip_021",
+      "content": "分享收集可限制累计大小、文件数量和允许上传的文件类型",
+      "meta": {}
+    },
+    {
+      "id": "tip_022",
+      "content": "桌面快捷方式与 MPK 应用可在新标签页打开",
+      "meta": {}
+    },
+    {
+      "id": "tip_023",
+      "content": "Linux 一键安装可选择 HTTP 或 HTTPS，升级时会保留当前访问协议",
       "meta": {}
     }
   ]
