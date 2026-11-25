@@ -104,7 +104,7 @@ M•Desk 以 Linux 为主要运行环境，同时提供 Windows、Docker 与 fnO
 | Linux amd64 | `MDesk-linux-amd64` | 适用于常见 x86_64 设备 |
 | Linux arm64 | `MDesk-linux-arm64` | 适用于 ARM64 设备 |
 | Linux armv7 | `MDesk-linux-armv7` | 适用于 32 位 ARMv7 设备 |
-| fnOS | `MDesk_2.8.27.fpk` | 支持 amd64 与 arm64 |
+| fnOS | `MDesk_2.8.28.fpk` | 支持 amd64 与 arm64 |
 
 <a id="linux-install"></a>
 
@@ -300,7 +300,7 @@ Docker 管理需要挂载 Docker Socket。文件管理与终端默认只看到�
 
 ### fnOS FPK（平台专用）
 
-1. 从 [Releases](https://github.com/IMGZCQ/MDesk/releases) 下载最新的 `MDesk_2.8.27.fpk`。
+1. 从 [Releases](https://github.com/IMGZCQ/MDesk/releases) 下载最新的 `MDesk_2.8.28.fpk`。
 2. 在 fnOS「应用中心」选择本地安装，上传 FPK 并打开安装向导。
 3. 设置访问端口、访问协议、管理员密码与密码确认。默认协议为 HTTP，默认端口为 `19188`。
 4. 安装完成后，从 fnOS 桌面或按安装时选择的协议和端口打开管理入口。FPK 安装向导已经建立管理员密码，不再走普通 Linux 部署的首次访问设密页面。
@@ -353,6 +353,18 @@ MDesk 使用手册.md      用户使用、部署与参数说明
 > 服务健康检查固定使用 `GET/HEAD /@mdesk/healthz`，与管理入口路径无关；一键安装脚本也使用该端点探测启动状态。
 
 ## 更新日志
+
+### 2.8.28
+
+- 完善 M·Desk ID 的同步、更换和释放流程，私有 Quick Tunnel 断线后可自动恢复，并更准确显示租约过期、ID 被占用及凭据失效等状态。
+- 增强设备实例身份的保存与恢复，数据目录迁移或备份恢复后仍可保持同一身份；身份文件异常时保留原文件并避免错误生成新的设备身份。
+- 优化 M·Desk ID 与隧道相关页面的地址展示、复制反馈和移动端布局，请求取消不再被记录为同步失败。
+- 完善应用中心的分类筛选、来源和详情信息展示，作者与开发者链接更清晰，并改善窄屏下的详情操作布局。
+- 同步应用中心 NginxUI+ 1.1.4 和 Restic Backup 0.2.11。
+
+### M·Desk 管理器 0.1.25
+
+- 调整管理器界面样式与布局，优化 SSH 主机列表、分页和远程连接加载状态在较小窗口下的显示，以及其他界面细节。
 
 ### 2.8.27
 
