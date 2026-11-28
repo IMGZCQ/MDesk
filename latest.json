@@ -1,7 +1,7 @@
 {
-  "tag_name": "v2.8.28",
+  "tag_name": "v2.8.29",
   "html_url": "https://mdesk.imcq.top/releases/",
-  "body": "# M·Desk 2.8.28\n\n## 本次更新内容\n\n### M·Desk 2.8.28\n\n- 完善 M·Desk ID 的同步、更换和释放流程，私有 Quick Tunnel 断线后可自动恢复，并更准确显示租约过期、ID 被占用及凭据失效等状态。\n- 增强设备实例身份的保存与恢复，数据目录迁移或备份恢复后仍可保持同一身份；身份文件异常时保留原文件并避免错误生成新的设备身份。\n- 优化 M·Desk ID 与隧道相关页面的地址展示、复制反馈和移动端布局，请求取消不再被记录为同步失败。\n- 完善应用中心的分类筛选、来源和详情信息展示，作者与开发者链接更清晰，并改善窄屏下的详情操作布局。\n- 同步应用中心 NginxUI+ 1.1.4 和 Restic Backup 0.2.11。\n\n### M·Desk 管理器 0.1.25\n\n- 调整管理器界面样式与布局，优化 SSH 主机列表、分页和远程连接加载状态在较小窗口下的显示，以及其他界面细节。\n",
+  "body": "# M·Desk 2.8.29\n\n## 本次更新内容\n\n### M·Desk 2.8.29\n\n- 完善密码分享在嵌入页面中的访问会话，预览、缩略图、下载、打包和上传继续沿用当前会话，退出后立即失效，且不会串用到其他分享。\n- 分享页面支持作为嵌入内容打开，并避免访问地址或分享会话通过 Referer 泄露；复制预览链接时自动移除密码和会话参数。\n- 完善 FRPC、FRPS、EasyTier 和 Cloudflare Tunnel 的组网实例管理，统一支持多实例切换、重命名、启停、运行状态和日志查看。\n- 完善 EasyTier 当前组网 IP 展示与快捷复制。\n- 完善 Cloudflare Tunnel 的快速/命名隧道配置、健康检查、Edge IP 默认值、公网链接获取与复制，以及异常状态提示。\n- 完善 FRPC、EasyTier 和 Cloudflare Tunnel 的内核下载与更新流程，增加镜像回退、下载源测速、缓存、完整性校验、网络重试和失败回滚；FRPS 的配置、实例、运行状态和日志体验同步完善。\n- 同步应用中心 Restic Backup 0.2.17。\n\n### M·Desk 管理器 0.1.26\n\n- 恢复或切换到管理器窗口时，锁定页的 PIN 输入框会自动获得焦点，改善重新打开窗口后的登录体验。\n- 修正终端全选快捷键的焦点判定，仅在终端获得焦点时响应，避免影响管理器其他文本操作。\n",
   "assets": [
     {
       "os": "linux",
@@ -9,11 +9,11 @@
       "name": "MDesk-linux-amd64",
       "urls": [
         "https://mdesk.imcq.top/releases/MDesk-linux-amd64",
-        "https://github.com/IMGZCQ/MDesk/releases/download/v2.8.28/MDesk-linux-amd64"
+        "https://github.com/IMGZCQ/MDesk/releases/download/v2.8.29/MDesk-linux-amd64"
       ],
       "browser_download_url": "https://mdesk.imcq.top/releases/MDesk-linux-amd64",
-      "size": 32403618,
-      "sha256": "ab9b73b0f20ffacc0522282d60c84ccb9bb8392634fcd0e80dc419fd9ef32578"
+      "size": 32428194,
+      "sha256": "26a69002af406666515359ae2c1e263a583f48cf32164d1fbd044c7053bdc45a"
     },
     {
       "os": "linux",
@@ -21,11 +21,11 @@
       "name": "MDesk-linux-arm64",
       "urls": [
         "https://mdesk.imcq.top/releases/MDesk-linux-arm64",
-        "https://github.com/IMGZCQ/MDesk/releases/download/v2.8.28/MDesk-linux-arm64"
+        "https://github.com/IMGZCQ/MDesk/releases/download/v2.8.29/MDesk-linux-arm64"
       ],
       "browser_download_url": "https://mdesk.imcq.top/releases/MDesk-linux-arm64",
       "size": 30212258,
-      "sha256": "ae6b8529623cb825d5fea562e4e55ca4e89317f6aef65d87fe567c1cd22e4d62"
+      "sha256": "f7c246e11bb3abe8384110411f32ecebb5afc05d73ae11666b4c89b59662b86f"
     },
     {
       "os": "linux",
@@ -33,11 +33,11 @@
       "name": "MDesk-linux-armv7",
       "urls": [
         "https://mdesk.imcq.top/releases/MDesk-linux-armv7",
-        "https://github.com/IMGZCQ/MDesk/releases/download/v2.8.28/MDesk-linux-armv7"
+        "https://github.com/IMGZCQ/MDesk/releases/download/v2.8.29/MDesk-linux-armv7"
       ],
       "browser_download_url": "https://mdesk.imcq.top/releases/MDesk-linux-armv7",
       "size": 30671010,
-      "sha256": "b5640f2bb72e4d8ac09af5708c340a502228bb49fa6b5f151d8c3e18c77e61a3"
+      "sha256": "22ca59dcdebe61b2ade7524ec271c77fac8c8f31b08df5db78648c2b0bdc539a"
     }
   ]
 }

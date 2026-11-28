@@ -104,7 +104,7 @@ M•Desk 以 Linux 为主要运行环境，同时提供 Windows、Docker 与 fnO
 | Linux amd64 | `MDesk-linux-amd64` | 适用于常见 x86_64 设备 |
 | Linux arm64 | `MDesk-linux-arm64` | 适用于 ARM64 设备 |
 | Linux armv7 | `MDesk-linux-armv7` | 适用于 32 位 ARMv7 设备 |
-| fnOS | `MDesk_2.8.28.fpk` | 支持 amd64 与 arm64 |
+| fnOS | `MDesk_2.8.29.fpk` | 支持 amd64 与 arm64 |
 
 <a id="linux-install"></a>
 
@@ -300,7 +300,7 @@ Docker 管理需要挂载 Docker Socket。文件管理与终端默认只看到�
 
 ### fnOS FPK（平台专用）
 
-1. 从 [Releases](https://github.com/IMGZCQ/MDesk/releases) 下载最新的 `MDesk_2.8.28.fpk`。
+1. 从 [Releases](https://github.com/IMGZCQ/MDesk/releases) 下载最新的 `MDesk_2.8.29.fpk`。
 2. 在 fnOS「应用中心」选择本地安装，上传 FPK 并打开安装向导。
 3. 设置访问端口、访问协议、管理员密码与密码确认。默认协议为 HTTP，默认端口为 `19188`。
 4. 安装完成后，从 fnOS 桌面或按安装时选择的协议和端口打开管理入口。FPK 安装向导已经建立管理员密码，不再走普通 Linux 部署的首次访问设密页面。
@@ -353,6 +353,21 @@ MDesk 使用手册.md      用户使用、部署与参数说明
 > 服务健康检查固定使用 `GET/HEAD /@mdesk/healthz`，与管理入口路径无关；一键安装脚本也使用该端点探测启动状态。
 
 ## 更新日志
+
+### 2.8.29
+
+- 完善密码分享在嵌入页面中的访问会话，预览、缩略图、下载、打包和上传继续沿用当前会话，退出后立即失效，且不会串用到其他分享。
+- 分享页面支持作为嵌入内容打开，并避免访问地址或分享会话通过 Referer 泄露；复制预览链接时自动移除密码和会话参数。
+- 完善 FRPC、FRPS、EasyTier 和 Cloudflare Tunnel 的组网实例管理，统一支持多实例切换、重命名、启停、运行状态和日志查看。
+- 完善 EasyTier 当前组网 IP 展示与快捷复制。
+- 完善 Cloudflare Tunnel 的快速/命名隧道配置、健康检查、Edge IP 默认值、公网链接获取与复制，以及异常状态提示。
+- 完善 FRPC、EasyTier 和 Cloudflare Tunnel 的内核下载与更新流程，增加镜像回退、下载源测速、缓存、完整性校验、网络重试和失败回滚；FRPS 的配置、实例、运行状态和日志体验同步完善。
+- 同步应用中心 Restic Backup 0.2.17。
+
+### M·Desk 管理器 0.1.26
+
+- 恢复或切换到管理器窗口时，锁定页的 PIN 输入框会自动获得焦点，改善重新打开窗口后的登录体验。
+- 修正终端全选快捷键的焦点判定，仅在终端获得焦点时响应，避免影响管理器其他文本操作。
 
 ### 2.8.28
 
